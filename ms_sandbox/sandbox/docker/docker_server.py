@@ -1,19 +1,28 @@
 # sandbox_server.py
 import asyncio
 import base64
-import docker
 import io
 import os
 import tarfile
 import tempfile
 import uuid
+from typing import Any, Dict, List, Optional, Union
+
+import docker
 from docker.errors import ImageNotFound, NotFound
 from fastapi import BackgroundTasks, HTTPException
-from typing import Any, Dict, List, Optional, Union
-from ms_sandbox.sandbox.utils import get_logger
+
 from ms_sandbox.sandbox.config import DockerContainerConfig
-from ms_sandbox.sandbox.sandbox_server import (CodeOutput, ContainerInfo, ExecuteCodeRequest, ExecuteCommandRequest,
-                                              FileOperationRequest, SandboxServer, WriteFileRequest)
+from ms_sandbox.sandbox.sandbox_server import (
+    CodeOutput,
+    ContainerInfo,
+    ExecuteCodeRequest,
+    ExecuteCommandRequest,
+    FileOperationRequest,
+    SandboxServer,
+    WriteFileRequest,
+)
+from ms_sandbox.sandbox.utils import get_logger
 
 # Configure logging
 logger = get_logger(name='docker-sandbox')
@@ -174,11 +183,13 @@ class DockerSandboxServer(SandboxServer):
                             demux=True,
                             stream=False,
                         ),
-                        timeout=timeout)
+                        timeout=timeout
+                    )
                 except asyncio.TimeoutError:
                     logger.error(f'Code execution timed out after {timeout} seconds')
                     return CodeOutput(
-                        output=None, logs='', error=f'Execution timed out after {timeout} seconds', status_code=124)
+                        output=None, logs='', error=f'Execution timed out after {timeout} seconds', status_code=124
+                    )
 
                 # Handle the output properly
                 if isinstance(exec_result.output, tuple):
@@ -197,7 +208,8 @@ class DockerSandboxServer(SandboxServer):
                     output=stdout_str,
                     logs=stderr_str,
                     status_code=exec_result.exit_code or 0,
-                    error=stderr_str if exec_result.exit_code != 0 else None)
+                    error=stderr_str if exec_result.exit_code != 0 else None
+                )
 
             finally:
                 # Clean up container temp file
@@ -246,7 +258,8 @@ class DockerSandboxServer(SandboxServer):
                         demux=True,
                         stream=False,
                     ),
-                    timeout=timeout)
+                    timeout=timeout
+                )
             except asyncio.TimeoutError:
                 logger.error(f'Command execution timed out after {timeout} seconds')
                 return CodeOutput(
@@ -263,7 +276,8 @@ class DockerSandboxServer(SandboxServer):
                 output=stdout.decode('utf-8', errors='replace'),
                 logs=stderr.decode('utf-8', errors='replace'),
                 status_code=exec_result.exit_code or 0,
-                error=stderr.decode('utf-8', errors='replace') if exec_result.exit_code != 0 else None)
+                error=stderr.decode('utf-8', errors='replace') if exec_result.exit_code != 0 else None
+            )
 
         except Exception as e:
             logger.error(f'Error executing command: {e}')

@@ -53,11 +53,13 @@ class SandboxClient(ABC):
         pass
 
     @abstractmethod
-    def execute_command(self,
-                        command: List[str],
-                        working_dir: str = None,
-                        timeout: int = None,
-                        env: Dict[str, str] = None) -> Dict[str, Any]:
+    def execute_command(
+        self,
+        command: List[str],
+        working_dir: str = None,
+        timeout: int = None,
+        env: Dict[str, str] = None
+    ) -> Dict[str, Any]:
         """Execute a shell command in the sandbox.
 
         Args:

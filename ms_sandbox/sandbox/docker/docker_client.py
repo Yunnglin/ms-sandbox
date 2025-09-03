@@ -1,5 +1,6 @@
-import requests
 from typing import Any, Dict, List, Optional, Union
+
+import requests
 
 from ms_sandbox.sandbox.config import DockerContainerConfig
 from ms_sandbox.sandbox.sandbox_client import SandboxClient
@@ -84,11 +85,13 @@ class DockerSandboxClient(SandboxClient):
 
         return response.json()
 
-    def execute_command(self,
-                        command: List[str],
-                        working_dir: str = None,
-                        timeout: int = None,
-                        env: Dict[str, str] = None) -> Dict[str, Any]:
+    def execute_command(
+        self,
+        command: List[str],
+        working_dir: str = None,
+        timeout: int = None,
+        env: Dict[str, str] = None
+    ) -> Dict[str, Any]:
         """Execute a shell command in the container.
 
         Args:
