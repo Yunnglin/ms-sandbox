@@ -124,19 +124,19 @@ from ms_sandbox.sandbox import SandboxManager, DockerSandboxConfig
 async def main():
     manager = SandboxManager()
     await manager.start()
-    
+
     try:
         # 创建沙箱
         config = DockerSandboxConfig(image="python:3.11-slim")
         sandbox_id = await manager.create_sandbox("docker", config)
-        
+
         # 执行代码
         result = await manager.execute_code(
-            sandbox_id, 
+            sandbox_id,
             "print('Hello from sandbox!')"
         )
         print(result)
-        
+
         # 清理
         await manager.delete_sandbox(sandbox_id)
     finally:
@@ -162,10 +162,10 @@ async def main():
         # 创建沙箱
         config = DockerSandboxConfig(image="python:3.11-slim")
         sandbox_id = await client.create_sandbox("docker", config)
-        
+
         # 设置为当前沙箱
         await client.set_current_sandbox(sandbox_id)
-        
+
         # 执行代码
         result = await client.execute_code_current(
             "print('Hello from HTTP client!')"
@@ -181,10 +181,10 @@ asyncio.run(main())
 async with SandboxManager() as manager:
     config = DockerSandboxConfig(image="python:3.11-slim")
     sandbox_id = await manager.create_sandbox("docker", config)
-    
+
     # 使用沙箱
     result = await manager.execute_code(sandbox_id, "print('Hello!')")
-    
+
 # 自动清理
 ```
 
@@ -259,11 +259,11 @@ class MyTool(BaseTool):
     @property
     def tool_type(self):
         return ToolType.MY_TOOL
-    
+
     async def execute(self, parameters, **kwargs):
         # 实现工具逻辑
         pass
-    
+
     def validate_parameters(self, parameters):
         # 验证参数
         pass
@@ -279,11 +279,11 @@ class MySandbox(BaseSandbox):
     @property
     def sandbox_type(self):
         return "my_sandbox"
-    
+
     async def start(self):
         # 启动逻辑
         pass
-    
+
     # 实现其他抽象方法...
 ```
 

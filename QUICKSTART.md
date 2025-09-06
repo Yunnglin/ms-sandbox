@@ -46,9 +46,9 @@ async def main():
     async with SandboxManager() as manager:
         config = DockerSandboxConfig(image="python-sandbox:latest")
         sandbox_id = await manager.create_sandbox("docker", config)
-        
+
         result = await manager.execute_code(
-            sandbox_id, 
+            sandbox_id,
             "print('Hello, Sandbox!')"
         )
         print(result)
@@ -66,7 +66,7 @@ async def main():
     async with HttpSandboxClient() as client:
         config = DockerSandboxConfig(image="python-sandbox:latest")
         sandbox_id = await client.create_sandbox("docker", config)
-        
+
         await client.set_current_sandbox(sandbox_id)
         result = await client.execute_code_current("print('Hello, HTTP!')")
         print(result)
