@@ -1,0 +1,175 @@
+"""Shell command execution tool."""
+
+import asyncio
+import shlex
+import time
+from typing import Any, Dict, List, Union
+
+from .base import BaseTool, register_tool
+from ..model import ToolType, ToolExecutionResult, ExecutionStatus, ShellExecutorConfig
+
+
+@register_tool(ToolType.SHELL_EXECUTOR)
+class ShellExecutor(BaseTool):
+    """Tool for executing shell commands."""
+    
+    def __init__(self, config: ShellExecutorConfig = None):
+        """Initialize shell executor.
+        
+        Args:
+            config: Shell executor configuration
+        """
+        super().__init__(config or ShellExecutorConfig())
+        self.config: ShellExecutorConfig = self.config
+    
+    @property
+    def tool_type(self) -> ToolType:
+        """Return tool type."""
+        return ToolType.SHELL_EXECUTOR
+    
+    async def execute(self, parameters: Dict[str, Any], **kwargs) -> ToolExecutionResult:
+        """Execute shell command.
+        
+        Args:
+            parameters: Execution parameters containing 'command'
+            **kwargs: Additional arguments including 'working_dir', 'env'
+            
+        Returns:
+            Execution result
+        """
+        start_time = time.time()
+        
+        try:
+            # Validate parameters
+            self.validate_parameters(parameters)
+            
+            command = parameters['command']
+            working_dir = kwargs.get('working_dir')
+            env = kwargs.get('env', {})
+            
+            # Prepare command
+            if isinstance(command, str):
+                cmd_args = shlex.split(command)
+            else:
+                cmd_args = command
+            
+            # Security check for blocked commands
+            if self._is_command_blocked(cmd_args[0]):
+                raise ValueError(f"Command '{cmd_args[0]}' is blocked")
+            
+            # Execute command
+            try:
+                process = await asyncio.create_subprocess_exec(
+                    *cmd_args,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=working_dir,
+                    env=env if env else None
+                )
+                
+                # Wait for completion with timeout
+                stdout, stderr = await asyncio.wait_for(
+                    process.communicate(),
+                    timeout=self.config.timeout
+                )
+                
+                return_code = process.returncode
+                
+                # Decode output
+                stdout_str = stdout.decode('utf-8', errors='replace') if stdout else ''
+                stderr_str = stderr.decode('utf-8', errors='replace') if stderr else ''
+                
+                # Combine outputs
+                output = stdout_str
+                if stderr_str:
+                    if output:
+                        output += "\n" + stderr_str
+                    else:
+                        output = stderr_str
+                
+                # Limit output size
+                if len(output) > self.config.max_output_size:
+                    output = output[:self.config.max_output_size] + "\n... (output truncated)"
+                
+                status = ExecutionStatus.SUCCESS if return_code == 0 else ExecutionStatus.ERROR
+                error = stderr_str if return_code != 0 else None
+                
+                execution_time = time.time() - start_time
+                
+                return ToolExecutionResult(
+                    tool_type=self.tool_type,
+                    status=status,
+                    result={
+                        'output': output,
+                        'stdout': stdout_str,
+                        'stderr': stderr_str,
+                        'return_code': return_code
+                    },
+                    error=error,
+                    execution_time=execution_time
+                )
+                
+            except asyncio.TimeoutError:
+                execution_time = time.time() - start_time
+                return ToolExecutionResult(
+                    tool_type=self.tool_type,
+                    status=ExecutionStatus.TIMEOUT,
+                    result=None,
+                    error=f"Command timed out after {self.config.timeout} seconds",
+                    execution_time=execution_time
+                )
+                
+        except Exception as e:
+            execution_time = time.time() - start_time
+            error_msg = f"Shell execution failed: {str(e)}"
+            
+            return ToolExecutionResult(
+                tool_type=self.tool_type,
+                status=ExecutionStatus.ERROR,
+                result=None,
+                error=error_msg,
+                execution_time=execution_time
+            )
+    
+    def validate_parameters(self, parameters: Dict[str, Any]) -> bool:
+        """Validate execution parameters.
+        
+        Args:
+            parameters: Parameters to validate
+            
+        Returns:
+            True if valid
+            
+        Raises:
+            ValueError: If parameters are invalid
+        """
+        if 'command' not in parameters:
+            raise ValueError("Parameter 'command' is required")
+        
+        command = parameters['command']
+        if not isinstance(command, (str, list)):
+            raise ValueError("Parameter 'command' must be a string or list")
+        
+        if isinstance(command, str) and not command.strip():
+            raise ValueError("Parameter 'command' cannot be empty")
+        
+        if isinstance(command, list) and not command:
+            raise ValueError("Parameter 'command' cannot be empty")
+        
+        return True
+    
+    def _is_command_blocked(self, command: str) -> bool:
+        """Check if a command is blocked.
+        
+        Args:
+            command: Command to check
+            
+        Returns:
+            True if command is blocked
+        """
+        # Check allowed commands (if specified)
+        if self.config.allowed_commands is not None:
+            return command not in self.config.allowed_commands
+        
+        # Check blocked commands
+        return command in self.config.blocked_commands
