@@ -54,80 +54,21 @@ class BaseSandbox(abc.ABC):
         """Clean up sandbox resources."""
         pass
 
-    @abc.abstractmethod
-    async def execute_code(self, code: str, language: str = 'python', **kwargs) -> Dict[str, Any]:
-        """Execute code in the sandbox.
-
-        Args:
-            code: Code to execute
-            language: Programming language
-            **kwargs: Additional execution parameters
-
-        Returns:
-            Execution result
-        """
-        pass
-
-    @abc.abstractmethod
-    async def execute_command(self, command: str, **kwargs) -> Dict[str, Any]:
-        """Execute shell command in the sandbox.
-
-        Args:
-            command: Command to execute
-            **kwargs: Additional execution parameters
-
-        Returns:
-            Execution result
-        """
-        pass
-
-    @abc.abstractmethod
-    async def read_file(self, path: str, **kwargs) -> Dict[str, Any]:
-        """Read file from sandbox.
-
-        Args:
-            path: File path
-            **kwargs: Additional parameters
-
-        Returns:
-            File content and metadata
-        """
-        pass
-
-    @abc.abstractmethod
-    async def write_file(self, path: str, content: str, **kwargs) -> Dict[str, Any]:
-        """Write file to sandbox.
-
-        Args:
-            path: File path
-            content: File content
-            **kwargs: Additional parameters
-
-        Returns:
-            Operation result
-        """
-        pass
-
-    async def initialize_tools(self, tool_configs: Dict[str, Any] = None) -> None:
+    async def initialize_tools(self) -> None:
         """Initialize sandbox tools.
 
         Args:
             tool_configs: Tool configurations
         """
-        tool_configs = tool_configs or {}
-
         # Initialize default tools
-        available_tools = ToolFactory.get_available_tools()
-
-        for tool_type in available_tools:
+        for tool_name, config in self.config.tools_config.items():
             try:
-                config = tool_configs.get(tool_type)
-                tool = ToolFactory.create_tool(tool_type, config)
-                if tool.is_enabled():
-                    self._tools[tool_type] = tool
+                tool = ToolFactory.create_tool(tool_name, **config)
+                if tool.enabled:
+                    self._tools[tool_name] = tool
             except Exception as e:
                 # Log error but continue with other tools
-                logger.error(f'Failed to initialize tool {tool_type}: {e}')
+                logger.error(f'Failed to initialize tool {tool_name}: {e}')
 
     def get_available_tools(self) -> List[str]:
         """Get list of available tools."""

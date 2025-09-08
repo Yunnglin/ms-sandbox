@@ -8,17 +8,6 @@ from pydantic import Field
 from .base import BaseModel, ExecutionStatus, SandboxStatus
 
 
-class FileOperationResult(BaseModel):
-    """Result of file operations."""
-
-    success: bool = Field(..., description='Operation success status')
-    path: str = Field(..., description='File path')
-    content: Optional[Union[str, bytes]] = Field(None, description='File content (for read operations)')
-    size: Optional[int] = Field(None, description='File size in bytes')
-    error: Optional[str] = Field(None, description='Error message if failed')
-    timestamp: datetime = Field(default_factory=datetime.now, description='Operation timestamp')
-
-
 class SandboxInfo(BaseModel):
     """Information about a sandbox instance."""
 

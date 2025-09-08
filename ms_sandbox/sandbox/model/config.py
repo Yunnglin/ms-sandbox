@@ -11,6 +11,8 @@ class SandboxConfig(BaseModel):
     """Base sandbox configuration."""
 
     timeout: int = Field(default=30, description='Default timeout in seconds')
+    tools_config: Dict[str, Dict[
+        str, Any]] = Field(default_factory=dict, description='Configuration for tools within the sandbox')
     working_dir: str = Field(default='/sandbox', description='Default working directory')
     env_vars: Dict[str, str] = Field(default_factory=dict, description='Environment variables')
     resource_limits: Dict[str, Any] = Field(default_factory=dict, description='Resource limits')

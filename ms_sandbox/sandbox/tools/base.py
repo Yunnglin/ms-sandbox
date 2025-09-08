@@ -69,9 +69,12 @@ class Tool(ABC):
     def schema(self) -> Dict:
         """Get the tool schema in OpenAI function calling format."""
         return {
-            'name': self.name,
-            'description': self._description,
-            'parameters': self._parameters.model_dump() if self._parameters else {},
+            'type': 'function',
+            'function': {
+                'name': self.name,
+                'description': self._description,
+                'parameters': self._parameters.model_dump() if self._parameters else {},
+            },
         }
 
     def __call__(self, *args, **kwargs):
@@ -152,7 +155,7 @@ class ToolFactory:
             ValueError: If tool name is not registered
         """
         if tool_name not in cls._tools:
-            raise ValueError(f'Tool name {tool_name} is not registered')
+            raise ValueError(f'Tool name {tool_name} is not registered, available: {cls.get_available_tools()}')
 
         tool_class = cls._tools[tool_name]
         return tool_class(**kwargs)
