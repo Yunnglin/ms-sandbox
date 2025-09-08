@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type
 
+from ms_sandbox.sandbox.model.base import SandboxType
 from ms_sandbox.sandbox.utils import get_logger
 
 from ..model import SandboxConfig, SandboxInfo, SandboxStatus, ToolType
@@ -26,14 +27,14 @@ class BaseSandbox(abc.ABC):
         self.id = sandbox_id or str(uuid.uuid4())
         self.config = config
         self.status = SandboxStatus.INITIALIZING
-        self.created_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.created_at = datetime.now()
+        self.updated_at = datetime.now()
         self.metadata: Dict[str, Any] = {}
         self._tools: Dict[ToolType, BaseTool] = {}
 
     @property
     @abc.abstractmethod
-    def sandbox_type(self) -> str:
+    def sandbox_type(self) -> SandboxType:
         """Return the sandbox type identifier."""
         pass
 
@@ -149,7 +150,7 @@ class BaseSandbox(abc.ABC):
             status: New status
         """
         self.status = status
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now()
 
     def get_info(self) -> SandboxInfo:
         """Get sandbox information.
@@ -161,7 +162,7 @@ class BaseSandbox(abc.ABC):
             id=self.id,
             status=self.status,
             type=self.sandbox_type,
-            config=self.config.dict(),
+            config=self.config.model_dump(exclude_none=True),
             created_at=self.created_at,
             updated_at=self.updated_at,
             metadata=self.metadata,
@@ -182,10 +183,10 @@ class BaseSandbox(abc.ABC):
 class SandboxFactory:
     """Factory for creating sandbox instances."""
 
-    _sandboxes: Dict[str, Type[BaseSandbox]] = {}
+    _sandboxes: Dict[SandboxType, Type[BaseSandbox]] = {}
 
     @classmethod
-    def register_sandbox(cls, sandbox_type: str, sandbox_class: Type[BaseSandbox]):
+    def register_sandbox(cls, sandbox_type: SandboxType, sandbox_class: Type[BaseSandbox]):
         """Register a sandbox class.
 
         Args:
@@ -195,7 +196,7 @@ class SandboxFactory:
         cls._sandboxes[sandbox_type] = sandbox_class
 
     @classmethod
-    def create_sandbox(cls, sandbox_type: str, config: SandboxConfig, sandbox_id: Optional[str] = None) -> BaseSandbox:
+    def create_sandbox(cls, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None) -> BaseSandbox:
         """Create a sandbox instance.
 
         Args:
@@ -216,7 +217,7 @@ class SandboxFactory:
         return sandbox_class(config, sandbox_id)
 
     @classmethod
-    def get_available_types(cls) -> List[str]:
+    def get_available_types(cls) -> List[SandboxType]:
         """Get list of available sandbox types.
 
         Returns:
@@ -225,7 +226,7 @@ class SandboxFactory:
         return list(cls._sandboxes.keys())
 
 
-def register_sandbox(sandbox_type: str):
+def register_sandbox(sandbox_type: SandboxType):
     """Decorator for registering sandboxes.
 
     Args:

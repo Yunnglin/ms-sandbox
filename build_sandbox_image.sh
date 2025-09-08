@@ -36,9 +36,6 @@ RUN pip install --no-cache-dir \
     beautifulsoup4 \
     lxml \
     pillow \
-    openpyxl \
-    python-dateutil \
-    pytz \
     tqdm \
     jupyter
 

@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from ms_sandbox.sandbox.utils import get_logger
 
 from ..boxes import BaseSandbox, SandboxFactory
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus, ToolType
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, ToolType, SandboxType
 
 logger = get_logger()
 
@@ -53,7 +53,7 @@ class SandboxManager:
         # Stop and cleanup all sandboxes
         await self.cleanup_all_sandboxes()
 
-    async def create_sandbox(self, sandbox_type: str, config: SandboxConfig, sandbox_id: Optional[str] = None) -> str:
+    async def create_sandbox(self, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None) -> str:
         """Create a new sandbox.
 
         Args:
@@ -271,7 +271,7 @@ class SandboxManager:
             raise ValueError(f'Tool {tool_type} not available in sandbox {sandbox_id}')
 
         result = await tool.execute(parameters)
-        return result.dict()
+        return result.model_dump()
 
     async def get_sandbox_tools(self, sandbox_id: str) -> List[ToolType]:
         """Get available tools for a sandbox.
@@ -315,7 +315,7 @@ class SandboxManager:
 
     async def _cleanup_expired_sandboxes(self) -> None:
         """Clean up expired sandboxes."""
-        current_time = datetime.utcnow()
+        current_time = datetime.now()
         expired_sandboxes = []
 
         for sandbox_id, sandbox in self._sandboxes.items():

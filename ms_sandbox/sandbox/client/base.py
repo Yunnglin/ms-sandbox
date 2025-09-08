@@ -3,6 +3,8 @@
 import abc
 from typing import Any, Dict, List, Optional, Union
 
+from ms_sandbox.sandbox.model.base import SandboxType
+
 from ..model import SandboxConfig, SandboxInfo, ToolType
 
 
@@ -19,7 +21,7 @@ class BaseSandboxClient(abc.ABC):
         self.current_sandbox_id: Optional[str] = None
 
     @abc.abstractmethod
-    async def create_sandbox(self, sandbox_type: str, config: SandboxConfig) -> str:
+    async def create_sandbox(self, sandbox_type: SandboxType, config: SandboxConfig) -> str:
         """Create a new sandbox.
 
         Args:

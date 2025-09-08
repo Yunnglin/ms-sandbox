@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional, Union
 
 import httpx
 
+from ms_sandbox.sandbox.model.base import SandboxType
+
 from ..model import SandboxConfig, SandboxInfo, ToolType
 from .base import BaseSandboxClient
 
@@ -35,7 +37,7 @@ class HttpSandboxClient(BaseSandboxClient):
             await self._client.aclose()
             self._client = None
 
-    async def create_sandbox(self, sandbox_type: str, config: SandboxConfig) -> str:
+    async def create_sandbox(self, sandbox_type: SandboxType, config: SandboxConfig) -> str:
         """Create a new sandbox."""
         client = await self._get_client()
 

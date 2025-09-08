@@ -38,9 +38,9 @@ class DockerSandbox(BaseSandbox):
         self.container: Optional[docker.models.containers.Container] = None
 
     @property
-    def sandbox_type(self) -> str:
+    def sandbox_type(self) -> SandboxType:
         """Return sandbox type."""
-        return str(SandboxType.DOCKER)
+        return SandboxType.DOCKER
 
     async def start(self) -> None:
         """Start the Docker container."""
@@ -295,7 +295,6 @@ class DockerSandbox(BaseSandbox):
                 'detach': True,
                 'tty': True,
                 'stdin_open': True,
-                'remove': False,  # We'll handle removal ourselves
             }
 
             # Add command if specified

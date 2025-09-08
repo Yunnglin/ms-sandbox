@@ -83,7 +83,7 @@ class SandboxServer:
 
         # Sandbox management
         @self.app.post('/sandbox/create')
-        async def create_sandbox(sandbox_type: str, config: Dict[str, Any], background_tasks: BackgroundTasks):
+        async def create_sandbox(sandbox_type: SandboxType, config: Dict[str, Any], background_tasks: BackgroundTasks):
             """Create a new sandbox."""
             try:
                 # Parse config based on sandbox type
