@@ -1,0 +1,363 @@
+"""HTTP-based sandbox manager for remote sandbox services."""
+
+from typing import Any, Dict, List, Optional
+
+import aiohttp
+
+from ms_sandbox.sandbox.utils import get_logger
+
+from ..model import DockerSandboxConfig, SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolType
+from .base import SandboxManager
+
+logger = get_logger()
+
+
+class HttpSandboxManager(SandboxManager):
+    """HTTP-based sandbox manager for remote services."""
+
+    def __init__(self, base_url: str, timeout: int = 30, max_connections: int = 100):
+        """Initialize HTTP sandbox manager.
+
+        Args:
+            base_url: Base URL of the sandbox service
+            timeout: Request timeout in seconds
+            max_connections: Maximum concurrent connections
+        """
+        self.base_url = base_url.rstrip('/')
+        self.timeout = aiohttp.ClientTimeout(total=timeout)
+        self.connector = aiohttp.TCPConnector(limit=max_connections)
+        self._session: Optional[aiohttp.ClientSession] = None
+        self._running = False
+
+    async def start(self) -> None:
+        """Start the HTTP sandbox manager."""
+        if self._running:
+            return
+
+        self._session = aiohttp.ClientSession(connector=self.connector, timeout=self.timeout)
+        self._running = True
+        logger.info(f'HTTP sandbox manager started, connected to {self.base_url}')
+
+    async def stop(self) -> None:
+        """Stop the HTTP sandbox manager."""
+        if not self._running:
+            return
+
+        self._running = False
+        if self._session:
+            await self._session.close()
+            self._session = None
+        logger.info('HTTP sandbox manager stopped')
+
+    async def create_sandbox(
+        self, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None
+    ) -> str:
+        """Create a new sandbox via HTTP API.
+
+        Args:
+            sandbox_type: Type of sandbox to create
+            config: Sandbox configuration
+            sandbox_id: Optional sandbox ID
+
+        Returns:
+            Sandbox ID
+
+        Raises:
+            ValueError: If sandbox type is not supported
+            RuntimeError: If sandbox creation fails
+        """
+        if not self._session:
+            raise RuntimeError('Manager not started')
+
+        # Match server's endpoint format: POST /sandbox/create
+        params = {'sandbox_type': sandbox_type}
+        payload = config.model_dump()
+
+        try:
+            async with self._session.post(f'{self.base_url}/sandbox/create', params=params, json=payload) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    sandbox_id = data['sandbox_id']
+                    logger.info(f'Created sandbox {sandbox_id} via HTTP API')
+                    return sandbox_id
+                else:
+                    error_data = await response.json()
+                    raise RuntimeError(f"HTTP {response.status}: {error_data.get('detail', 'Unknown error')}")
+
+        except aiohttp.ClientError as e:
+            logger.error(f'HTTP client error creating sandbox: {e}')
+            raise RuntimeError(f'Failed to create sandbox: {e}')
+
+    async def get_sandbox_info(self, sandbox_id: str) -> Optional[SandboxInfo]:
+        """Get sandbox information via HTTP API.
+
+        Args:
+            sandbox_id: Sandbox ID
+
+        Returns:
+            Sandbox information or None if not found
+        """
+        if not self._session:
+            raise RuntimeError('Manager not started')
+
+        try:
+            # Match server's endpoint format: GET /sandbox/{sandbox_id}
+            async with self._session.get(f'{self.base_url}/sandbox/{sandbox_id}') as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return SandboxInfo.model_validate(data)
+                elif response.status == 404:
+                    return None
+                else:
+                    error_data = await response.json()
+                    logger.error(f'Error getting sandbox info: HTTP {response.status}: {error_data}')
+                    return None
+
+        except aiohttp.ClientError as e:
+            logger.error(f'HTTP client error getting sandbox info: {e}')
+            return None
+
+    async def list_sandboxes(self, status_filter: Optional[SandboxStatus] = None) -> List[SandboxInfo]:
+        """List all sandboxes via HTTP API.
+
+        Args:
+            status_filter: Optional status filter
+
+        Returns:
+            List of sandbox information
+        """
+        if not self._session:
+            raise RuntimeError('Manager not started')
+
+        params = {}
+        if status_filter:
+            params['status'] = status_filter.value
+
+        try:
+            # Match server's endpoint format: GET /sandbox/list
+            async with self._session.get(f'{self.base_url}/sandbox/list', params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return [SandboxInfo.model_validate(item) for item in data['sandboxes']]
+                else:
+                    error_data = await response.json()
+                    logger.error(f'Error listing sandboxes: HTTP {response.status}: {error_data}')
+                    return []
+
+        except aiohttp.ClientError as e:
+            logger.error(f'HTTP client error listing sandboxes: {e}')
+            return []
+
+    async def stop_sandbox(self, sandbox_id: str) -> bool:
+        """Stop a sandbox via HTTP API.
+
+        Note: The server doesn't have a dedicated stop endpoint,
+        so we implement this by checking if sandbox exists.
+
+        Args:
+            sandbox_id: Sandbox ID
+
+        Returns:
+            True if sandbox exists, False if not found
+        """
+        if not self._session:
+            raise RuntimeError('Manager not started')
+
+        # Since server doesn't have stop endpoint, just check if sandbox exists
+        info = await self.get_sandbox_info(sandbox_id)
+        if info:
+            logger.info(f'Sandbox {sandbox_id} exists (stop operation not supported by server)')
+            return True
+        else:
+            logger.warning(f'Sandbox {sandbox_id} not found for stopping')
+            return False
+
+    async def delete_sandbox(self, sandbox_id: str) -> bool:
+        """Delete a sandbox via HTTP API.
+
+        Args:
+            sandbox_id: Sandbox ID
+
+        Returns:
+            True if deleted successfully, False if not found
+        """
+        if not self._session:
+            raise RuntimeError('Manager not started')
+
+        try:
+            # Match server's endpoint format: DELETE /sandbox/{sandbox_id}
+            async with self._session.delete(f'{self.base_url}/sandbox/{sandbox_id}') as response:
+                if response.status == 200:
+                    logger.info(f'Deleted sandbox {sandbox_id} via HTTP API')
+                    return True
+                elif response.status == 404:
+                    logger.warning(f'Sandbox {sandbox_id} not found for deletion')
+                    return False
+                else:
+                    error_data = await response.json()
+                    logger.error(f'Error deleting sandbox: HTTP {response.status}: {error_data}')
+                    return False
+
+        except aiohttp.ClientError as e:
+            logger.error(f'HTTP client error deleting sandbox: {e}')
+            return False
+
+    async def execute_tool(self, sandbox_id: str, tool_type: ToolType, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute tool in sandbox via HTTP API.
+
+        Args:
+            sandbox_id: Sandbox ID
+            tool_type: Tool type to execute
+            parameters: Tool parameters
+
+        Returns:
+            Tool execution result
+
+        Raises:
+            ValueError: If sandbox or tool not found
+        """
+        if not self._session:
+            raise RuntimeError('Manager not started')
+
+        # Match server's endpoint format and ToolExecutionRequest structure
+        payload = {'sandbox_id': sandbox_id, 'tool_type': tool_type.value, 'parameters': parameters}
+
+        try:
+            # Match server's endpoint format: POST /sandbox/tool/execute
+            async with self._session.post(f'{self.base_url}/sandbox/tool/execute', json=payload) as response:
+                if response.status == 200:
+                    return await response.json()
+                elif response.status == 404:
+                    error_data = await response.json()
+                    raise ValueError(error_data.get('detail', f'Sandbox {sandbox_id} not found'))
+                elif response.status == 500:
+                    error_data = await response.json()
+                    raise RuntimeError(error_data.get('detail', 'Internal server error'))
+                else:
+                    error_data = await response.json()
+                    raise RuntimeError(f"HTTP {response.status}: {error_data.get('detail', 'Unknown error')}")
+
+        except aiohttp.ClientError as e:
+            logger.error(f'HTTP client error executing tool: {e}')
+            raise RuntimeError(f'Failed to execute tool: {e}')
+
+    async def get_sandbox_tools(self, sandbox_id: str) -> List[ToolType]:
+        """Get available tools for a sandbox via HTTP API.
+
+        Args:
+            sandbox_id: Sandbox ID
+
+        Returns:
+            List of available tool types
+
+        Raises:
+            ValueError: If sandbox not found
+        """
+        if not self._session:
+            raise RuntimeError('Manager not started')
+
+        try:
+            # Match server's endpoint format: GET /sandbox/{sandbox_id}/tools
+            async with self._session.get(f'{self.base_url}/sandbox/{sandbox_id}/tools') as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return [ToolType(tool) for tool in data['tools']]
+                elif response.status == 404:
+                    error_data = await response.json()
+                    raise ValueError(error_data.get('detail', f'Sandbox {sandbox_id} not found'))
+                else:
+                    error_data = await response.json()
+                    raise RuntimeError(f"HTTP {response.status}: {error_data.get('detail', 'Unknown error')}")
+
+        except aiohttp.ClientError as e:
+            logger.error(f'HTTP client error getting sandbox tools: {e}')
+            raise RuntimeError(f'Failed to get sandbox tools: {e}')
+
+    async def cleanup_all_sandboxes(self) -> None:
+        """Clean up all sandboxes via HTTP API.
+
+        Note: Server doesn't have bulk delete endpoint,
+        so we list and delete individually.
+        """
+        if not self._session:
+            raise RuntimeError('Manager not started')
+
+        try:
+            # Get all sandboxes and delete them one by one
+            sandboxes = await self.list_sandboxes()
+            deleted_count = 0
+
+            for sandbox in sandboxes:
+                try:
+                    if await self.delete_sandbox(sandbox.id):
+                        deleted_count += 1
+                except Exception as e:
+                    logger.error(f'Error deleting sandbox {sandbox.id}: {e}')
+
+            logger.info(f'Cleaned up {deleted_count} sandboxes via HTTP API')
+
+        except Exception as e:
+            logger.error(f'HTTP client error cleaning up sandboxes: {e}')
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get manager statistics via HTTP API.
+
+        Returns:
+            Statistics dictionary
+        """
+        if not self._session:
+            return {'manager_type': 'http', 'base_url': self.base_url, 'running': False, 'error': 'Manager not started'}
+
+        # Return basic stats since server stats endpoint exists but may not match local format
+        return {
+            'manager_type': 'http',
+            'base_url': self.base_url,
+            'running': self._running,
+            'timeout': self.timeout.total,
+        }
+
+    async def get_server_stats(self) -> Dict[str, Any]:
+        """Get server statistics via HTTP API.
+
+        Returns:
+            Server statistics dictionary
+        """
+        if not self._session:
+            raise RuntimeError('Manager not started')
+
+        try:
+            # Match server's endpoint format: GET /stats
+            async with self._session.get(f'{self.base_url}/stats') as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    error_data = await response.json()
+                    logger.error(f'Error getting server stats: HTTP {response.status}: {error_data}')
+                    return {}
+
+        except aiohttp.ClientError as e:
+            logger.error(f'HTTP client error getting server stats: {e}')
+            return {}
+
+    async def health_check(self) -> Dict[str, Any]:
+        """Perform health check via HTTP API.
+
+        Returns:
+            Health check result
+        """
+        if not self._session:
+            raise RuntimeError('Manager not started')
+
+        try:
+            # Match server's endpoint format: GET /health
+            async with self._session.get(f'{self.base_url}/health') as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    error_data = await response.json()
+                    logger.error(f'Health check failed: HTTP {response.status}: {error_data}')
+                    return {'healthy': False, 'error': f'HTTP {response.status}'}
+
+        except aiohttp.ClientError as e:
+            logger.error(f'HTTP client error during health check: {e}')
+            return {'healthy': False, 'error': str(e)}

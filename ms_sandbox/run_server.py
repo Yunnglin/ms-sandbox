@@ -1,7 +1,5 @@
 """Server startup script."""
 
-import uvicorn
-
 from ms_sandbox.sandbox import create_server
 from ms_sandbox.sandbox.utils import get_logger
 
@@ -16,7 +14,7 @@ def main():
     logger.info('API docs: http://localhost:8000/docs')
     logger.info('Health check: http://localhost:8000/health')
 
-    uvicorn.run(server.app, host='0.0.0.0', port=8000, log_level='info')
+    server.run(host='0.0.0.0', port=8000, log_level='info')
 
 
 if __name__ == '__main__':

@@ -1,0 +1,144 @@
+"""Base sandbox manager interface."""
+
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
+
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolType
+
+
+class SandboxManager(ABC):
+    """Abstract base class for sandbox managers."""
+
+    @abstractmethod
+    async def start(self) -> None:
+        """Start the sandbox manager."""
+        pass
+
+    @abstractmethod
+    async def stop(self) -> None:
+        """Stop the sandbox manager."""
+        pass
+
+    @abstractmethod
+    async def create_sandbox(
+        self, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None
+    ) -> str:
+        """Create a new sandbox.
+
+        Args:
+            sandbox_type: Type of sandbox to create
+            config: Sandbox configuration
+            sandbox_id: Optional sandbox ID
+
+        Returns:
+            Sandbox ID
+
+        Raises:
+            ValueError: If sandbox type is not supported
+            RuntimeError: If sandbox creation fails
+        """
+        pass
+
+    @abstractmethod
+    async def get_sandbox_info(self, sandbox_id: str) -> Optional[SandboxInfo]:
+        """Get sandbox information.
+
+        Args:
+            sandbox_id: Sandbox ID
+
+        Returns:
+            Sandbox information or None if not found
+        """
+        pass
+
+    @abstractmethod
+    async def list_sandboxes(self, status_filter: Optional[SandboxStatus] = None) -> List[SandboxInfo]:
+        """List all sandboxes.
+
+        Args:
+            status_filter: Optional status filter
+
+        Returns:
+            List of sandbox information
+        """
+        pass
+
+    @abstractmethod
+    async def stop_sandbox(self, sandbox_id: str) -> bool:
+        """Stop a sandbox.
+
+        Args:
+            sandbox_id: Sandbox ID
+
+        Returns:
+            True if stopped successfully, False if not found
+        """
+        pass
+
+    @abstractmethod
+    async def delete_sandbox(self, sandbox_id: str) -> bool:
+        """Delete a sandbox.
+
+        Args:
+            sandbox_id: Sandbox ID
+
+        Returns:
+            True if deleted successfully, False if not found
+        """
+        pass
+
+    @abstractmethod
+    async def execute_tool(self, sandbox_id: str, tool_type: ToolType, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute tool in sandbox.
+
+        Args:
+            sandbox_id: Sandbox ID
+            tool_type: Tool type to execute
+            parameters: Tool parameters
+
+        Returns:
+            Tool execution result
+
+        Raises:
+            ValueError: If sandbox or tool not found
+        """
+        pass
+
+    @abstractmethod
+    async def get_sandbox_tools(self, sandbox_id: str) -> List[ToolType]:
+        """Get available tools for a sandbox.
+
+        Args:
+            sandbox_id: Sandbox ID
+
+        Returns:
+            List of available tool types
+
+        Raises:
+            ValueError: If sandbox not found
+        """
+        pass
+
+    @abstractmethod
+    def get_stats(self) -> Dict[str, Any]:
+        """Get manager statistics.
+
+        Returns:
+            Statistics dictionary
+        """
+        pass
+
+    @abstractmethod
+    async def cleanup_all_sandboxes(self) -> None:
+        """Clean up all sandboxes."""
+        pass
+
+    # Context manager support
+    async def __aenter__(self):
+        """Async context manager entry."""
+        await self.start()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit."""
+        await self.stop()

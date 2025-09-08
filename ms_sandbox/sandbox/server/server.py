@@ -1,7 +1,5 @@
 """FastAPI server for sandbox system."""
 
-import asyncio
-import base64
 import time
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional
@@ -9,20 +7,15 @@ from typing import Any, Dict, List, Optional
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .manager import SandboxManager
-from .model import (
+from ..manager import LocalSandboxManager
+from ..model import (
     DockerSandboxConfig,
-    ExecuteCodeRequest,
-    ExecuteCommandRequest,
     HealthCheckResult,
-    ReadFileRequest,
     SandboxConfig,
     SandboxInfo,
     SandboxStatus,
     SandboxType,
     ToolExecutionRequest,
-    ToolType,
-    WriteFileRequest,
 )
 
 
@@ -35,7 +28,7 @@ class SandboxServer:
         Args:
             cleanup_interval: Cleanup interval in seconds
         """
-        self.manager = SandboxManager(cleanup_interval)
+        self.manager = LocalSandboxManager(cleanup_interval)
         self.app = FastAPI(
             title='Sandbox API',
             description='Agent sandbox execution environment',
@@ -120,83 +113,6 @@ class SandboxServer:
             if not success:
                 raise HTTPException(status_code=404, detail='Sandbox not found')
             return {'message': 'Sandbox deleted successfully'}
-
-        # Code execution
-        @self.app.post('/sandbox/execute/code')
-        async def execute_code(request: ExecuteCodeRequest):
-            """Execute code in a sandbox."""
-            try:
-                result = await self.manager.execute_code(
-                    request.sandbox_id,
-                    request.code,
-                    request.language,
-                    timeout=request.timeout,
-                    working_dir=request.working_dir,
-                    env=request.env
-                )
-                return result
-            except ValueError as e:
-                raise HTTPException(status_code=404, detail=str(e))
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
-
-        @self.app.post('/sandbox/execute/command')
-        async def execute_command(request: ExecuteCommandRequest):
-            """Execute command in a sandbox."""
-            try:
-                result = await self.manager.execute_command(
-                    request.sandbox_id,
-                    request.command,
-                    timeout=request.timeout,
-                    working_dir=request.working_dir,
-                    env=request.env
-                )
-                return result
-            except ValueError as e:
-                raise HTTPException(status_code=404, detail=str(e))
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
-
-        # File operations
-        @self.app.post('/sandbox/file/read')
-        async def read_file(request: ReadFileRequest):
-            """Read file from sandbox."""
-            try:
-                result = await self.manager.read_file(
-                    request.sandbox_id, request.path, encoding=request.encoding, binary=request.binary
-                )
-                return result
-            except ValueError as e:
-                raise HTTPException(status_code=404, detail=str(e))
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
-
-        @self.app.post('/sandbox/file/write')
-        async def write_file(request: WriteFileRequest):
-            """Write file to sandbox."""
-            try:
-                content = request.content
-
-                # Handle base64 encoded binary content
-                if request.binary and isinstance(content, str):
-                    try:
-                        content = base64.b64decode(content)
-                    except Exception:
-                        raise HTTPException(status_code=400, detail='Invalid base64 content')
-
-                result = await self.manager.write_file(
-                    request.sandbox_id,
-                    request.path,
-                    content,
-                    encoding=request.encoding,
-                    binary=request.binary,
-                    create_dirs=request.create_dirs
-                )
-                return result
-            except ValueError as e:
-                raise HTTPException(status_code=404, detail=str(e))
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
 
         # Tool execution
         @self.app.post('/sandbox/tool/execute')

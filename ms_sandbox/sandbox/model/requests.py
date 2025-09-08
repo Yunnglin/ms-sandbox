@@ -10,7 +10,6 @@ from .base import BaseModel, ToolType
 class ExecuteCodeRequest(BaseModel):
     """Request model for code execution."""
 
-    sandbox_id: str = Field(..., description='Sandbox identifier')
     code: str = Field(..., description='Code to execute')
     language: str = Field(default='python', description='Programming language')
     timeout: Optional[int] = Field(None, description='Execution timeout in seconds')
@@ -22,7 +21,6 @@ class ExecuteCodeRequest(BaseModel):
 class ExecuteCommandRequest(BaseModel):
     """Request model for shell command execution."""
 
-    sandbox_id: str = Field(..., description='Sandbox identifier')
     command: Union[str, List[str]] = Field(..., description='Command to execute')
     timeout: Optional[int] = Field(None, description='Execution timeout in seconds')
     working_dir: Optional[str] = Field(None, description='Working directory')
@@ -33,7 +31,6 @@ class ExecuteCommandRequest(BaseModel):
 class FileOperationRequest(BaseModel):
     """Base request model for file operations."""
 
-    sandbox_id: str = Field(..., description='Sandbox identifier')
     path: str = Field(..., description='File path')
 
 

@@ -2,7 +2,7 @@
 
 import asyncio
 
-from ms_sandbox.sandbox import DockerSandboxConfig, HttpSandboxClient, SandboxManager, create_server
+from ms_sandbox.sandbox import DockerSandboxConfig, HttpSandboxManager, LocalSandboxManager, create_server
 
 
 async def manager_example():
@@ -10,7 +10,7 @@ async def manager_example():
     print('=== SandboxManager Example ===')
 
     # Create manager
-    manager = SandboxManager()
+    manager = LocalSandboxManager()
     await manager.start()
 
     try:
@@ -66,7 +66,7 @@ async def client_server_example():
     # Note: This assumes the server is running separately
     # Run: python -m ms_sandbox.sandbox.server
 
-    async with HttpSandboxClient('http://localhost:8000') as client:
+    async with HttpSandboxManager('http://localhost:8000') as client:
         try:
             # Health check
             health = await client.health_check()
@@ -128,7 +128,7 @@ async def context_manager_example():
     print('\n=== Context Manager Example ===')
 
     # Manager with auto-cleanup
-    async with SandboxManager() as manager:
+    async with LocalSandboxManager() as manager:
         config = DockerSandboxConfig(image='python:3.11-slim')
         sandbox_id = await manager.create_sandbox('docker', config)
 
@@ -175,10 +175,10 @@ async def main():
     print('======================')
 
     # Run direct manager example
-    await manager_example()
+    # await manager_example()
 
     # Run context manager example
-    await context_manager_example()
+    # await context_manager_example()
 
     # Try client/server example (may fail if server not running)
     try:

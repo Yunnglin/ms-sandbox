@@ -6,8 +6,7 @@ FastAPI-based client/server architecture, and comprehensive tool support.
 """
 
 from .boxes import BaseSandbox, DockerSandbox, SandboxFactory
-from .client import BaseSandboxClient, HttpSandboxClient
-from .manager import SandboxManager
+from .manager import HttpSandboxManager, LocalSandboxManager
 
 # Import main components
 from .model import (
@@ -27,46 +26,5 @@ from .model import (
     ToolType,
     WriteFileRequest,
 )
-from .server import SandboxServer, create_server
+from .server.server import SandboxServer, create_server
 from .tools import BaseTool, FileReader, FileWriter, PythonExecutor, ShellExecutor, ToolFactory
-
-__all__ = [
-    # Core components
-    'SandboxManager',
-    'SandboxServer',
-    'BaseSandboxClient',
-    'HttpSandboxClient',
-
-    # Sandbox implementations
-    'BaseSandbox',
-    'DockerSandbox',
-    'SandboxFactory',
-
-    # Tools
-    'BaseTool',
-    'PythonExecutor',
-    'ShellExecutor',
-    'FileReader',
-    'FileWriter',
-    'ToolFactory',
-
-    # Models
-    'SandboxConfig',
-    'DockerSandboxConfig',
-    'SandboxInfo',
-    'SandboxStatus',
-    'ToolType',
-    'ExecutionStatus',
-    'ExecuteCodeRequest',
-    'ExecuteCommandRequest',
-    'ReadFileRequest',
-    'WriteFileRequest',
-    'ToolExecutionRequest',
-    'ExecutionResult',
-    'FileOperationResult',
-    'ToolExecutionResult',
-    'HealthCheckResult',
-
-    # Server utilities
-    'create_server',
-]

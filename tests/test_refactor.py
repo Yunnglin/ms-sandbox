@@ -14,7 +14,6 @@ async def test_imports():
     try:
         from ms_sandbox.sandbox import (
             BaseSandbox,
-            BaseSandboxClient,
             BaseTool,
             DockerSandbox,
             DockerSandboxConfig,
@@ -22,9 +21,9 @@ async def test_imports():
             FileReader,
             FileWriter,
             HttpSandboxClient,
+            LocalSandboxManager,
             PythonExecutor,
             SandboxConfig,
-            SandboxManager,
             SandboxServer,
             SandboxStatus,
             ShellExecutor,
@@ -114,9 +113,9 @@ async def test_manager_creation():
     print('\nTesting manager creation...')
 
     try:
-        from ms_sandbox.sandbox import SandboxManager
+        from ms_sandbox.sandbox import LocalSandboxManager
 
-        manager = SandboxManager(cleanup_interval=600)
+        manager = LocalSandboxManager(cleanup_interval=600)
         print(f'✓ Sandbox manager created')
 
         # Test stats (should be empty initially)

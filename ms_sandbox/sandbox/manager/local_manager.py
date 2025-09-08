@@ -2,18 +2,20 @@
 
 import asyncio
 import time
+from collections import Counter
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from ms_sandbox.sandbox.utils import get_logger
 
 from ..boxes import BaseSandbox, SandboxFactory
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus, ToolType, SandboxType
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolType
+from .base import SandboxManager
 
 logger = get_logger()
 
 
-class SandboxManager:
+class LocalSandboxManager(SandboxManager):
     """Manager for sandbox environments."""
 
     def __init__(self, cleanup_interval: int = 300):  # 5 minutes
@@ -34,6 +36,7 @@ class SandboxManager:
 
         self._running = True
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
+        logger.info('Local sandbox manager started')
 
     async def stop(self) -> None:
         """Stop the sandbox manager."""
@@ -52,8 +55,11 @@ class SandboxManager:
 
         # Stop and cleanup all sandboxes
         await self.cleanup_all_sandboxes()
+        logger.info('Local sandbox manager stopped')
 
-    async def create_sandbox(self, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None) -> str:
+    async def create_sandbox(
+        self, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None
+    ) -> str:
         """Create a new sandbox.
 
         Args:
@@ -78,9 +84,11 @@ class SandboxManager:
             # Store sandbox
             self._sandboxes[sandbox.id] = sandbox
 
+            logger.info(f'Created and started sandbox {sandbox.id} of type {sandbox_type}')
             return sandbox.id
 
         except Exception as e:
+            logger.error(f'Failed to create sandbox of type {sandbox_type}: {e}')
             raise RuntimeError(f'Failed to create sandbox: {e}')
 
     async def get_sandbox(self, sandbox_id: str) -> Optional[BaseSandbox]:
@@ -135,10 +143,12 @@ class SandboxManager:
         """
         sandbox = self._sandboxes.get(sandbox_id)
         if not sandbox:
+            logger.warning(f'Sandbox {sandbox_id} not found for stopping')
             return False
 
         try:
             await sandbox.stop()
+            logger.info(f'Stopped sandbox {sandbox_id}')
             return True
         except Exception as e:
             logger.error(f'Error stopping sandbox {sandbox_id}: {e}')
@@ -155,98 +165,18 @@ class SandboxManager:
         """
         sandbox = self._sandboxes.get(sandbox_id)
         if not sandbox:
+            logger.warning(f'Sandbox {sandbox_id} not found for deletion')
             return False
 
         try:
             await sandbox.stop()
             await sandbox.cleanup()
             del self._sandboxes[sandbox_id]
+            logger.info(f'Deleted sandbox {sandbox_id}')
             return True
         except Exception as e:
             logger.error(f'Error deleting sandbox {sandbox_id}: {e}')
             return False
-
-    async def execute_code(self, sandbox_id: str, code: str, language: str = 'python', **kwargs) -> Dict[str, Any]:
-        """Execute code in a sandbox.
-
-        Args:
-            sandbox_id: Sandbox ID
-            code: Code to execute
-            language: Programming language
-            **kwargs: Additional parameters
-
-        Returns:
-            Execution result
-
-        Raises:
-            ValueError: If sandbox not found
-        """
-        sandbox = self._sandboxes.get(sandbox_id)
-        if not sandbox:
-            raise ValueError(f'Sandbox {sandbox_id} not found')
-
-        return await sandbox.execute_code(code, language, **kwargs)
-
-    async def execute_command(self, sandbox_id: str, command: str, **kwargs) -> Dict[str, Any]:
-        """Execute command in a sandbox.
-
-        Args:
-            sandbox_id: Sandbox ID
-            command: Command to execute
-            **kwargs: Additional parameters
-
-        Returns:
-            Execution result
-
-        Raises:
-            ValueError: If sandbox not found
-        """
-        sandbox = self._sandboxes.get(sandbox_id)
-        if not sandbox:
-            raise ValueError(f'Sandbox {sandbox_id} not found')
-
-        return await sandbox.execute_command(command, **kwargs)
-
-    async def read_file(self, sandbox_id: str, path: str, **kwargs) -> Dict[str, Any]:
-        """Read file from sandbox.
-
-        Args:
-            sandbox_id: Sandbox ID
-            path: File path
-            **kwargs: Additional parameters
-
-        Returns:
-            File content and metadata
-
-        Raises:
-            ValueError: If sandbox not found
-        """
-        sandbox = self._sandboxes.get(sandbox_id)
-        if not sandbox:
-            raise ValueError(f'Sandbox {sandbox_id} not found')
-
-        return await sandbox.read_file(path, **kwargs)
-
-    async def write_file(self, sandbox_id: str, path: str, content: str, **kwargs) -> Dict[str, Any]:
-        """Write file to sandbox.
-
-        Args:
-            sandbox_id: Sandbox ID
-            path: File path
-            content: File content
-            **kwargs: Additional parameters
-
-        Returns:
-            Operation result
-
-        Raises:
-            ValueError: If sandbox not found
-        """
-        sandbox = self._sandboxes.get(sandbox_id)
-        if not sandbox:
-            raise ValueError(f'Sandbox {sandbox_id} not found')
-
-        return await sandbox.write_file(path, content, **kwargs)
 
     async def execute_tool(self, sandbox_id: str, tool_type: ToolType, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute tool in sandbox.
@@ -266,10 +196,14 @@ class SandboxManager:
         if not sandbox:
             raise ValueError(f'Sandbox {sandbox_id} not found')
 
+        if sandbox.status != SandboxStatus.RUNNING:
+            raise ValueError(f'Sandbox {sandbox_id} is not running (status: {sandbox.status})')
+
         tool = sandbox.get_tool(tool_type)
         if not tool:
             raise ValueError(f'Tool {tool_type} not available in sandbox {sandbox_id}')
 
+        logger.debug(f'Executing tool {tool_type} in sandbox {sandbox_id}')
         result = await tool.execute(parameters)
         return result.model_dump()
 
@@ -294,12 +228,37 @@ class SandboxManager:
     async def cleanup_all_sandboxes(self) -> None:
         """Clean up all sandboxes."""
         sandbox_ids = list(self._sandboxes.keys())
+        logger.info(f'Cleaning up {len(sandbox_ids)} sandboxes')
 
         for sandbox_id in sandbox_ids:
             try:
                 await self.delete_sandbox(sandbox_id)
             except Exception as e:
                 logger.error(f'Error cleaning up sandbox {sandbox_id}: {e}')
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get manager statistics.
+
+        Returns:
+            Statistics dictionary
+        """
+        status_counter = Counter()
+        type_counter = Counter()
+
+        for sandbox in self._sandboxes.values():
+            status_counter[sandbox.status.value] += 1
+            type_counter[sandbox.sandbox_type.value] += 1
+
+        stats = {
+            'manager_type': 'local',
+            'total_sandboxes': len(self._sandboxes),
+            'status_counts': dict(status_counter),
+            'sandbox_types': dict(type_counter),
+            'running': self._running,
+            'cleanup_interval': self._cleanup_interval,
+        }
+
+        return stats
 
     async def _cleanup_loop(self) -> None:
         """Background cleanup loop."""
@@ -329,32 +288,12 @@ class SandboxManager:
                 expired_sandboxes.append(sandbox_id)
 
         # Clean up expired sandboxes
+        if expired_sandboxes:
+            logger.info(f'Found {len(expired_sandboxes)} expired sandboxes to clean up')
+
         for sandbox_id in expired_sandboxes:
             try:
                 logger.info(f'Cleaning up expired sandbox: {sandbox_id}')
                 await self.delete_sandbox(sandbox_id)
             except Exception as e:
                 logger.error(f'Error cleaning up expired sandbox {sandbox_id}: {e}')
-
-    def get_stats(self) -> Dict[str, Any]:
-        """Get manager statistics.
-
-        Returns:
-            Statistics dictionary
-        """
-        stats = {
-            'total_sandboxes': len(self._sandboxes),
-            'status_counts': {},
-            'sandbox_types': {},
-        }
-
-        for sandbox in self._sandboxes.values():
-            # Count by status
-            status = sandbox.status.value
-            stats['status_counts'][status] = stats['status_counts'].get(status, 0) + 1
-
-            # Count by type
-            sandbox_type = sandbox.sandbox_type
-            stats['sandbox_types'][sandbox_type] = stats['sandbox_types'].get(sandbox_type, 0) + 1
-
-        return stats

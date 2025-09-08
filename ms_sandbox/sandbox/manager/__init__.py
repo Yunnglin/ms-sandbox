@@ -1,7 +1,11 @@
-"""Sandbox environment manager."""
+"""Sandbox manager implementations."""
 
-from .sandbox_manager import SandboxManager
+from .base import SandboxManager
+from .http_manager import HttpSandboxManager
+from .local_manager import LocalSandboxManager
 
 __all__ = [
     'SandboxManager',
+    'LocalSandboxManager',
+    'HttpSandboxManager',
 ]

@@ -1,9 +1,10 @@
 """Base sandbox interface and factory."""
 
 import abc
-import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type
+
+import shortuuid as uuid
 
 from ms_sandbox.sandbox.model.base import SandboxType
 from ms_sandbox.sandbox.utils import get_logger
@@ -24,7 +25,7 @@ class BaseSandbox(abc.ABC):
             config: Sandbox configuration
             sandbox_id: Optional sandbox ID (will be generated if not provided)
         """
-        self.id = sandbox_id or str(uuid.uuid4())
+        self.id = sandbox_id or str(uuid.uuid())
         self.config = config
         self.status = SandboxStatus.INITIALIZING
         self.created_at = datetime.now()
@@ -196,7 +197,9 @@ class SandboxFactory:
         cls._sandboxes[sandbox_type] = sandbox_class
 
     @classmethod
-    def create_sandbox(cls, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None) -> BaseSandbox:
+    def create_sandbox(
+        cls, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None
+    ) -> BaseSandbox:
         """Create a sandbox instance.
 
         Args:
