@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import Field
 
-from .base import BaseModel, ToolType
+from .base import BaseModel
 
 
 class ExecuteCodeRequest(BaseModel):
@@ -54,6 +54,6 @@ class ToolExecutionRequest(BaseModel):
     """Request model for tool execution."""
 
     sandbox_id: str = Field(..., description='Sandbox identifier')
-    tool_type: ToolType = Field(..., description='Type of tool to execute')
+    tool_name: str = Field(..., description='Name of tool to execute')
     parameters: Dict[str, Any] = Field(default_factory=dict, description='Tool parameters')
     timeout: Optional[int] = Field(None, description='Execution timeout in seconds')

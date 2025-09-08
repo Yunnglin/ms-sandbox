@@ -89,17 +89,6 @@ log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
 # ms_logger.setLevel(log_level)
 
 
-@contextmanager
-def ms_logger_ignore_error():
-    ms_logger = get_ms_logger()
-    origin_log_level = ms_logger.level
-    ms_logger.setLevel(logging.CRITICAL)
-    try:
-        yield
-    finally:
-        ms_logger.setLevel(origin_log_level)
-
-
 def add_file_handler_if_needed(logger, log_file, file_mode, log_level):
     for handler in logger.handlers:
         if isinstance(handler, logging.FileHandler):

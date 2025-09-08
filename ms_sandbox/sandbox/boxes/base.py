@@ -7,10 +7,10 @@ from typing import Any, Dict, List, Optional, Type
 import shortuuid as uuid
 
 from ms_sandbox.sandbox.model.base import SandboxType
-from ms_sandbox.sandbox.utils import get_logger
+from ms_sandbox.utils import get_logger
 
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus, ToolType
-from ..tools import BaseTool, ToolFactory
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus
+from ..tools import Tool, ToolFactory
 
 logger = get_logger()
 
@@ -31,7 +31,7 @@ class BaseSandbox(abc.ABC):
         self.created_at = datetime.now()
         self.updated_at = datetime.now()
         self.metadata: Dict[str, Any] = {}
-        self._tools: Dict[ToolType, BaseTool] = {}
+        self._tools: Dict[str, Tool] = {}
 
     @property
     @abc.abstractmethod
@@ -108,7 +108,7 @@ class BaseSandbox(abc.ABC):
         """
         pass
 
-    async def initialize_tools(self, tool_configs: Dict[ToolType, Any] = None) -> None:
+    async def initialize_tools(self, tool_configs: Dict[str, Any] = None) -> None:
         """Initialize sandbox tools.
 
         Args:
@@ -129,20 +129,20 @@ class BaseSandbox(abc.ABC):
                 # Log error but continue with other tools
                 logger.error(f'Failed to initialize tool {tool_type}: {e}')
 
-    def get_available_tools(self) -> List[ToolType]:
+    def get_available_tools(self) -> List[str]:
         """Get list of available tools."""
         return list(self._tools.keys())
 
-    def get_tool(self, tool_type: ToolType) -> Optional[BaseTool]:
+    def get_tool(self, tool_name: str) -> Optional[Tool]:
         """Get tool instance by type.
 
         Args:
-            tool_type: Tool type
+            tool_name: Tool name
 
         Returns:
             Tool instance or None if not available
         """
-        return self._tools.get(tool_type)
+        return self._tools.get(tool_name)
 
     def update_status(self, status: SandboxStatus) -> None:
         """Update sandbox status.

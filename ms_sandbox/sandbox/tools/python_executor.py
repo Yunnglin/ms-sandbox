@@ -8,12 +8,12 @@ import traceback
 from contextlib import redirect_stderr, redirect_stdout
 from typing import Any, Dict
 
-from ..model import ExecutionStatus, PythonExecutorConfig, ToolExecutionResult, ToolType
-from .base import BaseTool, register_tool
+from ..model import ExecutionStatus, PythonExecutorConfig, ToolExecutionResult
+from .base import Tool, register_tool
 
 
 @register_tool(ToolType.PYTHON_EXECUTOR)
-class PythonExecutor(BaseTool):
+class PythonExecutor(Tool):
     """Tool for executing Python code."""
 
     def __init__(self, config: PythonExecutorConfig = None):

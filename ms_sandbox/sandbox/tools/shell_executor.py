@@ -5,12 +5,12 @@ import shlex
 import time
 from typing import Any, Dict, List, Union
 
-from ..model import ExecutionStatus, ShellExecutorConfig, ToolExecutionResult, ToolType
-from .base import BaseTool, register_tool
+from ..model import ExecutionStatus, ShellExecutorConfig, ToolExecutionResult
+from .base import Tool, register_tool
 
 
-@register_tool(ToolType.SHELL_EXECUTOR)
-class ShellExecutor(BaseTool):
+@register_tool('shell_executor')
+class ShellExecutor(Tool):
     """Tool for executing shell commands."""
 
     def __init__(self, config: ShellExecutorConfig = None):
@@ -21,11 +21,6 @@ class ShellExecutor(BaseTool):
         """
         super().__init__(config or ShellExecutorConfig())
         self.config: ShellExecutorConfig = self.config
-
-    @property
-    def tool_type(self) -> ToolType:
-        """Return tool type."""
-        return ToolType.SHELL_EXECUTOR
 
     async def execute(self, parameters: Dict[str, Any], **kwargs) -> ToolExecutionResult:
         """Execute shell command.
@@ -127,46 +122,3 @@ class ShellExecutor(BaseTool):
                 error=error_msg,
                 execution_time=execution_time
             )
-
-    def validate_parameters(self, parameters: Dict[str, Any]) -> bool:
-        """Validate execution parameters.
-
-        Args:
-            parameters: Parameters to validate
-
-        Returns:
-            True if valid
-
-        Raises:
-            ValueError: If parameters are invalid
-        """
-        if 'command' not in parameters:
-            raise ValueError("Parameter 'command' is required")
-
-        command = parameters['command']
-        if not isinstance(command, (str, list)):
-            raise ValueError("Parameter 'command' must be a string or list")
-
-        if isinstance(command, str) and not command.strip():
-            raise ValueError("Parameter 'command' cannot be empty")
-
-        if isinstance(command, list) and not command:
-            raise ValueError("Parameter 'command' cannot be empty")
-
-        return True
-
-    def _is_command_blocked(self, command: str) -> bool:
-        """Check if a command is blocked.
-
-        Args:
-            command: Command to check
-
-        Returns:
-            True if command is blocked
-        """
-        # Check allowed commands (if specified)
-        if self.config.allowed_commands is not None:
-            return command not in self.config.allowed_commands
-
-        # Check blocked commands
-        return command in self.config.blocked_commands

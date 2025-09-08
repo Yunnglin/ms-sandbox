@@ -38,16 +38,6 @@ class SandboxType(str, Enum):
     DOCKER = 'docker'
 
 
-class ToolType(str, Enum):
-    """Tool type enumeration."""
-
-    PYTHON_EXECUTOR = 'python_executor'
-    SHELL_EXECUTOR = 'shell_executor'
-    FILE_READER = 'file_reader'
-    FILE_WRITER = 'file_writer'
-    PACKAGE_INSTALLER = 'package_installer'
-
-
 class ExecutionStatus(str, Enum):
     """Execution status enumeration."""
 

@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolType
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType
 
 
 class SandboxManager(ABC):
@@ -88,12 +88,12 @@ class SandboxManager(ABC):
         pass
 
     @abstractmethod
-    async def execute_tool(self, sandbox_id: str, tool_type: ToolType, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute tool in sandbox.
 
         Args:
             sandbox_id: Sandbox ID
-            tool_type: Tool type to execute
+            tool_name: Tool name to execute
             parameters: Tool parameters
 
         Returns:
@@ -105,7 +105,7 @@ class SandboxManager(ABC):
         pass
 
     @abstractmethod
-    async def get_sandbox_tools(self, sandbox_id: str) -> List[ToolType]:
+    async def get_sandbox_tools(self, sandbox_id: str) -> List[str]:
         """Get available tools for a sandbox.
 
         Args:

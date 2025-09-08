@@ -5,12 +5,12 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Union
 
-from ..model import ExecutionStatus, FileOperationConfig, ToolExecutionResult, ToolType
-from .base import BaseTool, register_tool
+from ..model import ExecutionStatus, FileOperationConfig, ToolExecutionResult
+from .base import Tool, register_tool
 
 
 @register_tool(ToolType.FILE_READER)
-class FileReader(BaseTool):
+class FileReader(Tool):
     """Tool for reading files."""
 
     def __init__(self, config: FileOperationConfig = None):
@@ -134,7 +134,7 @@ class FileReader(BaseTool):
 
 
 @register_tool(ToolType.FILE_WRITER)
-class FileWriter(BaseTool):
+class FileWriter(Tool):
     """Tool for writing files."""
 
     def __init__(self, config: FileOperationConfig = None):

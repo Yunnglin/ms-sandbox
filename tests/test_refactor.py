@@ -14,7 +14,6 @@ async def test_imports():
     try:
         from ms_sandbox.sandbox import (
             BaseSandbox,
-            BaseTool,
             DockerSandbox,
             DockerSandboxConfig,
             ExecutionStatus,
@@ -27,6 +26,7 @@ async def test_imports():
             SandboxServer,
             SandboxStatus,
             ShellExecutor,
+            Tool,
             ToolType,
             create_server,
         )
@@ -68,7 +68,7 @@ async def test_tool_factory():
     print('\nTesting tool factory...')
 
     try:
-        from ms_sandbox.sandbox import PythonExecutor, ToolFactory, ToolType
+        from ms_sandbox.sandbox import PythonExecutor, ToolFactory
 
         # Check available tools
         available_tools = ToolFactory.get_available_tools()

@@ -6,10 +6,10 @@ from collections import Counter
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from ms_sandbox.sandbox.utils import get_logger
+from ms_sandbox.utils import get_logger
 
 from ..boxes import BaseSandbox, SandboxFactory
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolType
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType
 from .base import SandboxManager
 
 logger = get_logger()
@@ -178,12 +178,12 @@ class LocalSandboxManager(SandboxManager):
             logger.error(f'Error deleting sandbox {sandbox_id}: {e}')
             return False
 
-    async def execute_tool(self, sandbox_id: str, tool_type: ToolType, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute tool in sandbox.
 
         Args:
             sandbox_id: Sandbox ID
-            tool_type: Tool type to execute
+            tool_name: Tool name to execute
             parameters: Tool parameters
 
         Returns:
@@ -199,15 +199,15 @@ class LocalSandboxManager(SandboxManager):
         if sandbox.status != SandboxStatus.RUNNING:
             raise ValueError(f'Sandbox {sandbox_id} is not running (status: {sandbox.status})')
 
-        tool = sandbox.get_tool(tool_type)
+        tool = sandbox.get_tool(tool_name)
         if not tool:
-            raise ValueError(f'Tool {tool_type} not available in sandbox {sandbox_id}')
+            raise ValueError(f'Tool {tool_name} not available in sandbox {sandbox_id}')
 
-        logger.debug(f'Executing tool {tool_type} in sandbox {sandbox_id}')
+        logger.debug(f'Executing tool {tool_name} in sandbox {sandbox_id}')
         result = await tool.execute(parameters)
         return result.model_dump()
 
-    async def get_sandbox_tools(self, sandbox_id: str) -> List[ToolType]:
+    async def get_sandbox_tools(self, sandbox_id: str) -> List[str]:
         """Get available tools for a sandbox.
 
         Args:

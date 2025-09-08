@@ -5,19 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import Field
 
-from .base import BaseModel, ExecutionStatus, SandboxStatus, ToolType
-
-
-class ExecutionResult(BaseModel):
-    """Result of code or command execution."""
-
-    status: ExecutionStatus = Field(..., description='Execution status')
-    output: Optional[str] = Field(None, description='Standard output')
-    error: Optional[str] = Field(None, description='Error output')
-    return_code: Optional[int] = Field(None, description='Process return code')
-    execution_time: Optional[float] = Field(None, description='Execution time in seconds')
-    timestamp: datetime = Field(default_factory=datetime.now, description='Execution timestamp')
-    metadata: Dict[str, Any] = Field(default_factory=dict, description='Additional metadata')
+from .base import BaseModel, ExecutionStatus, SandboxStatus
 
 
 class FileOperationResult(BaseModel):
@@ -41,15 +29,16 @@ class SandboxInfo(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now, description='Creation timestamp')
     updated_at: datetime = Field(default_factory=datetime.now, description='Last update timestamp')
     metadata: Dict[str, Any] = Field(default_factory=dict, description='Additional metadata')
-    available_tools: List[ToolType] = Field(default_factory=list, description='Available tools')
+    available_tools: List[str] = Field(default_factory=list, description='Available tools')
 
 
 class ToolExecutionResult(BaseModel):
     """Result of tool execution."""
 
-    tool_type: ToolType = Field(..., description='Type of tool executed')
+    tool_name: str = Field(..., description='Name of tool executed')
     status: ExecutionStatus = Field(..., description='Execution status')
     result: Any = Field(None, description='Tool execution result')
+    metadata: Dict[str, Any] = Field(default_factory=dict, description='Additional metadata')
     error: Optional[str] = Field(None, description='Error message if failed')
     execution_time: Optional[float] = Field(None, description='Execution time in seconds')
     timestamp: datetime = Field(default_factory=datetime.now, description='Execution timestamp')

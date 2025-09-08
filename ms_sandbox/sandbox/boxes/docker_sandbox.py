@@ -12,9 +12,9 @@ from typing import Any, Dict, List, Optional, Union
 import docker
 from docker.errors import APIError, ContainerError, ImageNotFound, NotFound
 
-from ms_sandbox.sandbox.utils import get_logger
+from ms_sandbox.utils import get_logger
 
-from ..model import DockerSandboxConfig, ExecutionStatus, SandboxStatus, SandboxType, ToolType
+from ..model import DockerSandboxConfig, ExecutionStatus, SandboxStatus, SandboxType
 from ..tools import ToolFactory
 from .base import BaseSandbox, register_sandbox
 
@@ -116,7 +116,7 @@ class DockerSandbox(BaseSandbox):
             Execution result
         """
         if language == 'python':
-            tool = self.get_tool(ToolType.PYTHON_EXECUTOR)
+            tool = self.get_tool('python_executor')
             if not tool:
                 raise RuntimeError('Python executor tool not available')
 

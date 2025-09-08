@@ -4,9 +4,9 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
-from ms_sandbox.sandbox.utils import get_logger
+from ms_sandbox.utils import get_logger
 
-from ..model import DockerSandboxConfig, SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolType
+from ..model import DockerSandboxConfig, SandboxConfig, SandboxInfo, SandboxStatus, SandboxType
 from .base import SandboxManager
 
 logger = get_logger()
@@ -202,12 +202,12 @@ class HttpSandboxManager(SandboxManager):
             logger.error(f'HTTP client error deleting sandbox: {e}')
             return False
 
-    async def execute_tool(self, sandbox_id: str, tool_type: ToolType, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute tool in sandbox via HTTP API.
 
         Args:
             sandbox_id: Sandbox ID
-            tool_type: Tool type to execute
+            tool_name: Tool name to execute
             parameters: Tool parameters
 
         Returns:
@@ -220,7 +220,7 @@ class HttpSandboxManager(SandboxManager):
             raise RuntimeError('Manager not started')
 
         # Match server's endpoint format and ToolExecutionRequest structure
-        payload = {'sandbox_id': sandbox_id, 'tool_type': tool_type.value, 'parameters': parameters}
+        payload = {'sandbox_id': sandbox_id, 'tool_type': tool_name, 'parameters': parameters}
 
         try:
             # Match server's endpoint format: POST /sandbox/tool/execute
@@ -241,7 +241,7 @@ class HttpSandboxManager(SandboxManager):
             logger.error(f'HTTP client error executing tool: {e}')
             raise RuntimeError(f'Failed to execute tool: {e}')
 
-    async def get_sandbox_tools(self, sandbox_id: str) -> List[ToolType]:
+    async def get_sandbox_tools(self, sandbox_id: str) -> List[str]:
         """Get available tools for a sandbox via HTTP API.
 
         Args:
@@ -261,7 +261,7 @@ class HttpSandboxManager(SandboxManager):
             async with self._session.get(f'{self.base_url}/sandbox/{sandbox_id}/tools') as response:
                 if response.status == 200:
                     data = await response.json()
-                    return [ToolType(tool) for tool in data['tools']]
+                    return data['tools']
                 elif response.status == 404:
                     error_data = await response.json()
                     raise ValueError(error_data.get('detail', f'Sandbox {sandbox_id} not found'))

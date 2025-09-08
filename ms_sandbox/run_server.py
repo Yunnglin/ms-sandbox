@@ -1,7 +1,7 @@
 """Server startup script."""
 
 from ms_sandbox.sandbox import create_server
-from ms_sandbox.sandbox.utils import get_logger
+from ms_sandbox.utils import get_logger
 
 logger = get_logger()
 
