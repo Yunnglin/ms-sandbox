@@ -109,6 +109,7 @@ class Tool(ABC):
         Returns:
             New tool instance with bound parameters/context
         """
+        pass
 
     def __str__(self) -> str:
         """String representation of the tool."""

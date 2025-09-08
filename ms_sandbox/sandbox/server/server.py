@@ -119,7 +119,7 @@ class SandboxServer:
         async def execute_tool(request: ToolExecutionRequest):
             """Execute tool in sandbox."""
             try:
-                result = await self.manager.execute_tool(request.sandbox_id, request.tool_type, request.parameters)
+                result = await self.manager.execute_tool(request.sandbox_id, request.tool_name, request.parameters)
                 return result
             except ValueError as e:
                 raise HTTPException(status_code=404, detail=str(e))
@@ -131,7 +131,7 @@ class SandboxServer:
             """Get available tools for a sandbox."""
             try:
                 tools = await self.manager.get_sandbox_tools(sandbox_id)
-                return {'tools': [tool.value for tool in tools]}
+                return tools
             except ValueError as e:
                 raise HTTPException(status_code=404, detail=str(e))
 

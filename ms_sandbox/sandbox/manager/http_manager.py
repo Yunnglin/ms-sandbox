@@ -220,7 +220,7 @@ class HttpSandboxManager(SandboxManager):
             raise RuntimeError('Manager not started')
 
         # Match server's endpoint format and ToolExecutionRequest structure
-        payload = {'sandbox_id': sandbox_id, 'tool_type': tool_name, 'parameters': parameters}
+        payload = {'sandbox_id': sandbox_id, 'tool_name': tool_name, 'parameters': parameters}
 
         try:
             # Match server's endpoint format: POST /sandbox/tool/execute
@@ -241,7 +241,7 @@ class HttpSandboxManager(SandboxManager):
             logger.error(f'HTTP client error executing tool: {e}')
             raise RuntimeError(f'Failed to execute tool: {e}')
 
-    async def get_sandbox_tools(self, sandbox_id: str) -> List[str]:
+    async def get_sandbox_tools(self, sandbox_id: str) -> Dict[str, Any]:
         """Get available tools for a sandbox via HTTP API.
 
         Args:
@@ -261,7 +261,7 @@ class HttpSandboxManager(SandboxManager):
             async with self._session.get(f'{self.base_url}/sandbox/{sandbox_id}/tools') as response:
                 if response.status == 200:
                     data = await response.json()
-                    return data['tools']
+                    return data
                 elif response.status == 404:
                     error_data = await response.json()
                     raise ValueError(error_data.get('detail', f'Sandbox {sandbox_id} not found'))

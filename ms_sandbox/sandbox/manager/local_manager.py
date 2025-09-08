@@ -207,14 +207,14 @@ class LocalSandboxManager(SandboxManager):
         result = await tool.execute(parameters)
         return result.model_dump()
 
-    async def get_sandbox_tools(self, sandbox_id: str) -> List[str]:
+    async def get_sandbox_tools(self, sandbox_id: str) -> Dict[str, Any]:
         """Get available tools for a sandbox.
 
         Args:
             sandbox_id: Sandbox ID
 
         Returns:
-            List of available tool types
+            Dictionary of available tool types
 
         Raises:
             ValueError: If sandbox not found

@@ -70,9 +70,9 @@ class BaseSandbox(abc.ABC):
                 # Log error but continue with other tools
                 logger.error(f'Failed to initialize tool {tool_name}: {e}')
 
-    def get_available_tools(self) -> List[str]:
+    def get_available_tools(self) -> Dict[str, Any]:
         """Get list of available tools."""
-        return list(self._tools.keys())
+        return {tool.name: tool.schema for tool in self._tools.values() if tool.enabled}
 
     def get_tool(self, tool_name: str) -> Optional[Tool]:
         """Get tool instance by type.

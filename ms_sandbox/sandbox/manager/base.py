@@ -105,14 +105,14 @@ class SandboxManager(ABC):
         pass
 
     @abstractmethod
-    async def get_sandbox_tools(self, sandbox_id: str) -> List[str]:
+    async def get_sandbox_tools(self, sandbox_id: str) -> Dict[str, Any]:
         """Get available tools for a sandbox.
 
         Args:
             sandbox_id: Sandbox ID
 
         Returns:
-            List of available tool types
+            Dictionary of available tool types, e.g., {"tool_name": tool_schema}
 
         Raises:
             ValueError: If sandbox not found
