@@ -94,8 +94,8 @@ async def demonstrate_http_manager():
         max_wait = 30
         for i in range(max_wait):
             info = await manager.get_sandbox_info(sandbox_id)
-            if info and info.status == SandboxStatus.READY:
-                logger.info('Sandbox is ready!')
+            if info and info.status == SandboxStatus.RUNNING:
+                logger.info('Sandbox is running!')
                 break
             elif info and info.status == SandboxStatus.ERROR:
                 logger.error('Sandbox failed to start')

@@ -32,7 +32,7 @@ async def direct_sandbox_example():
             'code': "print('Hello from sandbox!')\nresult = 2 + 2\nprint(f'2 + 2 = {result}')",
             'timeout': 30
         })
-        print(f'Python execution result: {result.result}')
+        print(f'Python execution result: {result.output}')
         if result.error:
             print(f'Error: {result.error}')
 
@@ -50,7 +50,7 @@ data = [i**2 for i in range(10)]
 print(f"Squares: {data}")
 '''
         })
-        print(f'System info result: {result.result}')
+        print(f'System info result: {result.output}')
 
         # Get available tools
         tools = sandbox.get_available_tools()
@@ -119,8 +119,8 @@ print(f"Working directory: {__import__('os').getcwd()}")
         result1 = await sandbox1.execute_tool('python_executor', {'code': code})
         result2 = await sandbox2.execute_tool('python_executor', {'code': code})
 
-        print(f'Sandbox 1 result:\n{result1.result}')
-        print(f'Sandbox 2 result:\n{result2.result}')
+        print(f'Sandbox 1 result:\n{result1.output}')
+        print(f'Sandbox 2 result:\n{result2.output}')
 
     finally:
         await sandbox1.stop()
@@ -166,7 +166,7 @@ async def error_handling_example():
             'code': 'print("This should work fine!")'
         })
         print(f'Success result: {result.status}')
-        print(f'Output: {result.result.strip()}')
+        print(f'Output: {result.output.strip()}')
 
 
 async def advanced_python_example():
@@ -242,7 +242,7 @@ print(json.dumps(results, indent=2))
             'timeout': 30
         })
 
-        print(f'Data processing result:\n{result.result}')
+        print(f'Data processing result:\n{result.output}')
         if result.error:
             print(f'Error: {result.error}')
 
@@ -299,7 +299,7 @@ if len(fib_seq) > 1:
             'timeout': 30
         })
 
-        print(f'Mathematical result:\n{result.result}')
+        print(f'Mathematical result:\n{result.output}')
         if result.error:
             print(f'Error: {result.error}')
 
@@ -343,7 +343,7 @@ print(f"Initialized. Counter: {counter}")
 print(f"Sessions: {len(user_sessions)}")
 '''
         })
-        print(f'Initialization result:\n{result1.result}')
+        print(f'Initialization result:\n{result1.output}')
 
         # Second execution - use existing variables
         result2 = await sandbox.execute_tool('python_executor', {
@@ -374,7 +374,7 @@ print(f"\\nTotal sessions: {len(user_sessions)}")
 print(f"Final counter: {counter}")
 '''
         })
-        print(f'Analysis result:\n{result2.result}')
+        print(f'Analysis result:\n{result2.output}')
 
         # Third execution - verify persistence
         result3 = await sandbox.execute_tool('python_executor', {
@@ -391,7 +391,7 @@ for session in user_sessions:
     print(f"  #{session['id']}: {session['user_id']} -> {session['action']} ({session['timestamp']})")
 '''
         })
-        print(f'Verification result:\n{result3.result}')
+        print(f'Verification result:\n{result3.output}')
 
 
 async def main():

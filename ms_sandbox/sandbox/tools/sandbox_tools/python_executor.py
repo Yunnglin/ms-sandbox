@@ -3,10 +3,13 @@
 import os
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from ..model import ExecutionStatus, SandboxType, ToolExecutionResult
-from .base import Tool, register_tool
-from .sandbox_tool import SandboxTool
-from .tool_info import ToolParams
+from ms_sandbox.sandbox.model import ExecutionStatus, SandboxType, ToolResult
+from ms_sandbox.sandbox.tools.base import Tool, register_tool
+from ms_sandbox.sandbox.tools.sandbox_tool import SandboxTool
+from ms_sandbox.sandbox.tools.tool_info import ToolParams
+
+if TYPE_CHECKING:
+    from ms_sandbox.sandbox.boxes import Sandbox
 
 
 @register_tool('python_executor')
@@ -31,13 +34,11 @@ class PythonExecutor(SandboxTool):
         required=['code']
     )
 
-    async def execute(self, sandbox_context, code: str, timeout: Optional[int] = 30) -> ToolExecutionResult:
+    async def execute(self, sandbox_context: 'Sandbox', code: str, timeout: Optional[int] = 30) -> ToolResult:
         """Execute Python code using IPython in the Docker container."""
 
         if not code.strip():
-            return ToolExecutionResult(
-                tool_name=self.name, status=ExecutionStatus.ERROR, result='', error='No code provided'
-            )
+            return ToolResult(tool_name=self.name, status=ExecutionStatus.ERROR, output='', error='No code provided')
 
         try:
             # Create a temporary Python script
@@ -51,24 +52,24 @@ class PythonExecutor(SandboxTool):
             command = f'python {script_path}'
             result = await sandbox_context.execute_command(command, timeout=timeout)
 
-            if result['exit_code'] == 0:
-                return ToolExecutionResult(
+            if result.exit_code == 0:
+                return ToolResult(
                     tool_name=self.name,
                     status=ExecutionStatus.SUCCESS,
-                    result=result['stdout'],
-                    error=result['stderr'] if result['stderr'] else None
+                    output=result.stdout,
+                    error=result.stderr if result.stderr else None
                 )
             else:
-                return ToolExecutionResult(
+                return ToolResult(
                     tool_name=self.name,
                     status=ExecutionStatus.ERROR,
-                    result=result['stdout'],
-                    error=result['stderr'] if result['stderr'] else None
+                    output=result.stdout,
+                    error=result.stderr if result.stderr else None
                 )
 
         except Exception as e:
-            return ToolExecutionResult(
-                tool_name=self.name, status=ExecutionStatus.ERROR, result='', error=f'Execution failed: {str(e)}'
+            return ToolResult(
+                tool_name=self.name, status=ExecutionStatus.ERROR, output='', error=f'Execution failed: {str(e)}'
             )
 
     def _create_execution_script(self, code: str) -> str:

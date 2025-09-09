@@ -20,7 +20,7 @@ from .model import (
     SandboxInfo,
     SandboxStatus,
     ToolExecutionRequest,
-    ToolExecutionResult,
+    ToolResult,
     WriteFileRequest,
 )
 from .server.server import SandboxServer, create_server

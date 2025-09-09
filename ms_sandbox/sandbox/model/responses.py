@@ -21,16 +21,30 @@ class SandboxInfo(BaseModel):
     available_tools: Dict[str, Any] = Field(default_factory=dict, description='Available tools')
 
 
-class ToolExecutionResult(BaseModel):
+class ExecutionResult(BaseModel):
+    """Base class for execution results."""
+
+    status: ExecutionStatus = Field(..., description='Execution status')
+    execution_time: Optional[float] = Field(None, description='Execution time in seconds')
+    timestamp: datetime = Field(default_factory=datetime.now, description='Execution timestamp')
+
+
+class ToolResult(ExecutionResult):
     """Result of tool execution."""
 
     tool_name: str = Field(..., description='Name of tool executed')
-    status: ExecutionStatus = Field(..., description='Execution status')
-    result: Any = Field(None, description='Tool execution result')
+    output: Any = Field(None, description='Tool execution result')
     metadata: Dict[str, Any] = Field(default_factory=dict, description='Additional metadata')
     error: Optional[str] = Field(None, description='Error message if failed')
-    execution_time: Optional[float] = Field(None, description='Execution time in seconds')
-    timestamp: datetime = Field(default_factory=datetime.now, description='Execution timestamp')
+
+
+class CommandResult(ExecutionResult):
+    """Command execution result."""
+
+    command: str = Field(..., description='Executed command')
+    exit_code: int = Field(..., description='Exit code of the command')
+    stdout: Optional[str] = Field(None, description='Standard output')
+    stderr: Optional[str] = Field(None, description='Standard error output')
 
 
 class HealthCheckResult(BaseModel):

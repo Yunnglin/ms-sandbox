@@ -9,12 +9,13 @@ import shortuuid as uuid
 from ms_sandbox.utils import get_logger
 
 from ..model import (
+    CommandResult,
     DockerSandboxConfig,
     SandboxConfig,
     SandboxInfo,
     SandboxStatus,
     SandboxType,
-    ToolExecutionResult,
+    ToolResult,
     ToolType,
 )
 from ..tools import Tool, ToolFactory
@@ -92,7 +93,25 @@ class Sandbox(abc.ABC):
         """
         return self._tools.get(tool_name)
 
-    async def execute_tool(self, tool_name: str, parameters: Dict[str, Any]) -> ToolExecutionResult:
+    def add_tool(self, tool: Tool) -> None:
+        """Add a tool to the sandbox.
+
+        Args:
+            tool: Tool instance to add
+        """
+        if tool.name in self._tools:
+            raise ValueError(f'Tool {tool.name} is already added to the sandbox')
+        if tool.enabled:
+            if (tool.required_sandbox_type is None or tool.required_sandbox_type == self.sandbox_type):
+                self._tools[tool.name] = tool
+            else:
+                raise ValueError(
+                    f'Tool {tool.name} requires {tool.required_sandbox_type} but sandbox is {self.sandbox_type}'
+                )
+        else:
+            raise ValueError(f'Tool {tool.name} is not enabled and cannot be added')
+
+    async def execute_tool(self, tool_name: str, parameters: Dict[str, Any]) -> ToolResult:
         """Execute a tool with given parameters.
 
         Args:
@@ -115,6 +134,15 @@ class Sandbox(abc.ABC):
 
         result = await tool.execute(sandbox_context=self, **parameters)
         return result
+
+    async def execute_command(self, command: str, timeout: Optional[int] = None) -> CommandResult:
+        """Execute a command in the sandbox environment.
+
+        Args:
+            command: Command to execute
+            timeout: Optional execution timeout in seconds
+        """
+        raise NotImplementedError('execute_command must be implemented by subclasses')
 
     @abc.abstractmethod
     async def get_execution_context(self) -> Any:
@@ -177,7 +205,7 @@ class SandboxFactory:
     def create_sandbox(
         cls,
         sandbox_type: SandboxType,
-        config: Optional[Union[SandboxConfig, Dict]],
+        config: Optional[Union[SandboxConfig, Dict]] = None,
         sandbox_id: Optional[str] = None
     ) -> Sandbox:
         """Create a sandbox instance.

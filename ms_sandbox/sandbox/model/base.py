@@ -7,7 +7,6 @@ class SandboxStatus(str, Enum):
     """Sandbox status enumeration."""
 
     INITIALIZING = 'initializing'
-    READY = 'ready'
     RUNNING = 'running'
     STOPPING = 'stopping'
     STOPPED = 'stopped'

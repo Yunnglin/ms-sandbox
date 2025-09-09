@@ -6,7 +6,7 @@ import aiohttp
 
 from ms_sandbox.utils import get_logger
 
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolExecutionRequest, ToolExecutionResult
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolExecutionRequest, ToolResult
 from .base import SandboxManager
 
 logger = get_logger()
@@ -211,7 +211,7 @@ class HttpSandboxManager(SandboxManager):
             logger.error(f'HTTP client error deleting sandbox: {e}')
             return False
 
-    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> ToolExecutionResult:
+    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> ToolResult:
         """Execute tool in sandbox via HTTP API.
 
         Args:
@@ -237,7 +237,7 @@ class HttpSandboxManager(SandboxManager):
             async with self._session.post(f'{self.base_url}/sandbox/tool/execute', json=payload) as response:
                 if response.status == 200:
                     data = await response.json()
-                    return ToolExecutionResult.model_validate(data)
+                    return ToolResult.model_validate(data)
                 elif response.status == 404:
                     error_data = await response.json()
                     raise ValueError(error_data.get('detail', f'Sandbox {sandbox_id} not found'))

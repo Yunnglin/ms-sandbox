@@ -17,4 +17,4 @@ from .requests import (
     ToolExecutionRequest,
     WriteFileRequest,
 )
-from .responses import HealthCheckResult, SandboxInfo, ToolExecutionResult
+from .responses import CommandResult, HealthCheckResult, SandboxInfo, ToolResult

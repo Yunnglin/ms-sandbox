@@ -1,9 +1,11 @@
 """Unit tests for the tool system functionality."""
 
+import asyncio
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from ms_sandbox.sandbox.model import SandboxType
+from ms_sandbox.sandbox.boxes.base import SandboxFactory
+from ms_sandbox.sandbox.model import ExecutionStatus, SandboxType
 from ms_sandbox.sandbox.tools import ToolFactory
 
 
@@ -36,135 +38,85 @@ class TestToolFactory(unittest.TestCase):
         self.assertIn('python_executor', available_tools)
 
 
-class TestPythonExecutorTool(unittest.IsolatedAsyncioTestCase):
-    """Test Python executor tool functionality."""
+class TestExecutorTool(unittest.IsolatedAsyncioTestCase):
+    """Test executor tool functionality."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.tool = ToolFactory.create_tool('python_executor')
+        self.docker_sandbox = SandboxFactory.create_sandbox(SandboxType.DOCKER)
+        asyncio.run(self.docker_sandbox.__aenter__())
 
-    def test_tool_properties(self):
-        """Test tool basic properties."""
-        self.assertEqual(self.tool.name, 'python_executor')
-        self.assertIn('Python', self.tool.description)
-        self.assertIsInstance(self.tool.schema, dict)
-        self.assertIn('properties', self.tool.schema)
+    def tearDown(self):
+        asyncio.run(self.docker_sandbox.__aexit__(None, None, None))
 
-    def test_tool_schema_validation(self):
-        """Test tool schema contains required fields."""
-        schema = self.tool.schema
-        self.assertIn('code', schema['properties'])
-        self.assertIn('timeout', schema['properties'])
-        self.assertIn('code', schema['required'])
-
-    async def test_tool_execution_with_mock_sandbox(self):
-        """Test tool execution with mocked sandbox."""
-        # Create mock sandbox
-        mock_sandbox = AsyncMock()
-        mock_sandbox.execute_code = AsyncMock(return_value={
-            'result': 'Hello World',
-            'error': None
-        })
-
-        # Execute tool
-        params = {'code': 'print("Hello World")', 'timeout': 30}
-        result = await self.tool.execute(mock_sandbox, params)
-
-        # Verify execution
-        mock_sandbox.execute_code.assert_called_once_with(
-            'print("Hello World")', timeout=30
+    async def test_python_executor(self):
+        self.docker_sandbox.add_tool(
+            ToolFactory.create_tool('python_executor')
         )
-        self.assertEqual(result['result'], 'Hello World')
-        self.assertIsNone(result['error'])
+        self.assertIn('python_executor', self.docker_sandbox.get_available_tools())
 
-    async def test_tool_execution_with_error(self):
-        """Test tool execution handling errors."""
-        # Create mock sandbox that returns error
-        mock_sandbox = AsyncMock()
-        mock_sandbox.execute_code = AsyncMock(return_value={
-            'result': None,
-            'error': 'SyntaxError: invalid syntax'
-        })
+        result = await self.docker_sandbox.execute_tool(
+            'python_executor', {'code': 'print("Hello, World!")'}
+        )
+        print(result.model_dump_json())
+        self.assertEqual(result.status, ExecutionStatus.SUCCESS)
 
-        # Execute tool with invalid code
-        params = {'code': 'print("invalid syntax', 'timeout': 30}
-        result = await self.tool.execute(mock_sandbox, params)
+    async def test_shell_executor(self):
+        self.docker_sandbox.add_tool(
+            ToolFactory.create_tool('shell_executor')
+        )
+        self.assertIn('shell_executor', self.docker_sandbox.get_available_tools())
 
-        # Verify error handling
-        self.assertIsNone(result['result'])
-        self.assertIn('SyntaxError', result['error'])
+        result = await self.docker_sandbox.execute_tool(
+            'shell_executor', {'command': 'echo "Hello, Shell!"'}
+        )
+        print(result.model_dump_json())
+        self.assertEqual(result.status, ExecutionStatus.SUCCESS)
+        self.assertIn('Hello, Shell!', result.output)
 
-    def test_tool_validate_params_valid(self):
-        """Test parameter validation with valid parameters."""
-        valid_params = {'code': 'print("test")', 'timeout': 30}
-        # Should not raise exception
-        self.tool.validate_params(valid_params)
+    async def test_file_operation(self):
+        self.docker_sandbox.add_tool(
+            ToolFactory.create_tool('file_operation')
+        )
+        self.assertIn('file_operation', self.docker_sandbox.get_available_tools())
 
-    def test_tool_validate_params_missing_required(self):
-        """Test parameter validation with missing required parameter."""
-        invalid_params = {'timeout': 30}  # Missing 'code'
-        with self.assertRaises(ValueError):
-            self.tool.validate_params(invalid_params)
+        # Create a test file
+        create_result = await self.docker_sandbox.execute_tool(
+            'file_operation', {'operation': 'create', 'file_path': '/tmp/test_file.txt', 'content': 'Test content'}
+        )
+        print(create_result.model_dump_json())
+        self.assertEqual(create_result.status, ExecutionStatus.SUCCESS)
 
-    def test_tool_validate_params_invalid_type(self):
-        """Test parameter validation with invalid parameter types."""
-        invalid_params = {'code': 123, 'timeout': 30}  # code should be string
-        with self.assertRaises(ValueError):
-            self.tool.validate_params(invalid_params)
+        # Check if the file exists
+        exists_result = await self.docker_sandbox.execute_tool(
+            'file_operation', {'operation': 'exists', 'file_path': '/tmp/test_file.txt'}
+        )
+        print(exists_result.model_dump_json())
+        self.assertEqual(exists_result.status, ExecutionStatus.SUCCESS)
+        self.assertIn('exists', exists_result.output)
 
+        # List directory contents
+        list_result = await self.docker_sandbox.execute_tool(
+            'file_operation', {'operation': 'list', 'file_path': '/tmp'}
+        )
+        print(list_result.model_dump_json())
+        self.assertEqual(list_result.status, ExecutionStatus.SUCCESS)
+        self.assertIn('test_file.txt', list_result.output)
 
-class TestToolExecution(unittest.IsolatedAsyncioTestCase):
-    """Test tool execution scenarios."""
+        # Delete the test file
+        delete_result = await self.docker_sandbox.execute_tool(
+            'file_operation', {'operation': 'delete', 'file_path': '/tmp/test_file.txt'}
+        )
+        print(delete_result.model_dump_json())
+        self.assertEqual(delete_result.status, ExecutionStatus.SUCCESS)
 
-    async def test_multiple_tools_execution(self):
-        """Test executing multiple different tools."""
-        available_tools = ToolFactory.get_available_tools()
-
-        for tool_name in available_tools[:2]:  # Test first 2 tools
-            tool = ToolFactory.create_tool(tool_name)
-            self.assertIsNotNone(tool)
-            self.assertEqual(tool.name, tool_name)
-
-    async def test_tool_execution_timeout_handling(self):
-        """Test tool execution with timeout parameters."""
-        tool = ToolFactory.create_tool('python_executor')
-
-        # Mock sandbox with slow execution
-        mock_sandbox = AsyncMock()
-        mock_sandbox.execute_code = AsyncMock(side_effect=asyncio.TimeoutError())
-
-        params = {'code': 'import time; time.sleep(10)', 'timeout': 1}
-
-        with self.assertRaises(asyncio.TimeoutError):
-            await tool.execute(mock_sandbox, params)
-
-    async def test_tool_concurrent_execution(self):
-        """Test concurrent tool execution."""
-        tool = ToolFactory.create_tool('python_executor')
-
-        # Create multiple mock sandboxes
-        mock_sandbox1 = AsyncMock()
-        mock_sandbox1.execute_code = AsyncMock(return_value={
-            'result': 'Result 1', 'error': None
-        })
-
-        mock_sandbox2 = AsyncMock()
-        mock_sandbox2.execute_code = AsyncMock(return_value={
-            'result': 'Result 2', 'error': None
-        })
-
-        # Execute concurrently
-        tasks = [
-            tool.execute(mock_sandbox1, {'code': 'print("test1")', 'timeout': 30}),
-            tool.execute(mock_sandbox2, {'code': 'print("test2")', 'timeout': 30})
-        ]
-
-        results = await asyncio.gather(*tasks)
-
-        # Verify both executions
-        self.assertEqual(results[0]['result'], 'Result 1')
-        self.assertEqual(results[1]['result'], 'Result 2')
-
+        # Verify deletion
+        verify_delete_result = await self.docker_sandbox.execute_tool(
+            'file_operation', {'operation': 'exists', 'file_path': '/tmp/test_file.txt'}
+        )
+        print(verify_delete_result.model_dump_json())
+        self.assertEqual(verify_delete_result.status, ExecutionStatus.SUCCESS)
+        self.assertIn('does not exist', verify_delete_result.output)
 
 if __name__ == '__main__':
     import asyncio

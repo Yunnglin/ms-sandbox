@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional, Type
 
-from ..model import SandboxType, ToolExecutionResult
+from ..model import SandboxType, ToolResult
 from .tool_info import ToolParams
 
 if TYPE_CHECKING:
@@ -59,7 +59,7 @@ class Tool(ABC):
         pass
 
     @abstractmethod
-    async def execute(self, sandbox_context: 'Sandbox', **kwargs) -> ToolExecutionResult:
+    async def execute(self, sandbox_context: 'Sandbox', **kwargs) -> ToolResult:
         """Execute the tool with given sandbox context and parameters."""
         pass
 

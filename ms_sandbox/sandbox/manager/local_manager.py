@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 from ms_sandbox.utils import get_logger
 
 from ..boxes import Sandbox, SandboxFactory
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolExecutionResult
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolResult
 from .base import SandboxManager
 
 logger = get_logger()
@@ -181,7 +181,7 @@ class LocalSandboxManager(SandboxManager):
             logger.error(f'Error deleting sandbox {sandbox_id}: {e}')
             return False
 
-    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> ToolExecutionResult:
+    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> ToolResult:
         """Execute tool in sandbox.
 
         Args:

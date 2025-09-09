@@ -103,7 +103,7 @@ class TestLocalSandboxManager(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertIsNotNone(result)
-        self.assertIn('Hello from manager!', result.result)
+        self.assertIn('Hello from manager!', result.output)
         self.assertIsNone(result.error)
 
 
@@ -201,8 +201,8 @@ class TestSandboxManagerConcurrency(unittest.IsolatedAsyncioTestCase):
 
         # Verify results
         self.assertEqual(len(results), 2)
-        self.assertIn('Sandbox 1', results[0].result)
-        self.assertIn('Sandbox 2', results[1].result)
+        self.assertIn('Sandbox 1', results[0].output)
+        self.assertIn('Sandbox 2', results[1].output)
 
         # Cleanup
         await asyncio.gather(*[
@@ -302,7 +302,7 @@ class TestSandboxManagerConfiguration(unittest.IsolatedAsyncioTestCase):
                 'python_executor',
                 {'code': 'print("Config test")', 'timeout': 30}
             )
-            self.assertIn('Config test', result.result)
+            self.assertIn('Config test', result.output)
 
 
     async def test_sandbox_with_multiple_tools(self):

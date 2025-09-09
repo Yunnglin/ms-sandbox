@@ -16,7 +16,7 @@ from ..model import (
     SandboxStatus,
     SandboxType,
     ToolExecutionRequest,
-    ToolExecutionResult,
+    ToolResult,
 )
 
 
@@ -118,7 +118,7 @@ class SandboxServer:
             return {'message': 'Sandbox deleted successfully'}
 
         # Tool execution
-        @self.app.post('/sandbox/tool/execute', response_model=ToolExecutionResult)
+        @self.app.post('/sandbox/tool/execute', response_model=ToolResult)
         async def execute_tool(request: ToolExecutionRequest):
             """Execute tool in sandbox."""
             try:

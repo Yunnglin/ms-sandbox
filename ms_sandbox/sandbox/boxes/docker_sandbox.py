@@ -1,20 +1,15 @@
 """Docker-based sandbox implementation."""
 
 import asyncio
-import io
-import json
-import os
-import tarfile
-import tempfile
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 
 import docker
 from docker.errors import APIError, ContainerError, ImageNotFound, NotFound
 
 from ms_sandbox.utils import get_logger
 
-from ..model import DockerSandboxConfig, ExecutionStatus, SandboxStatus, SandboxType
+from ..model import CommandResult, DockerSandboxConfig, ExecutionStatus, SandboxStatus, SandboxType
 from .base import Sandbox, register_sandbox
 
 logger = get_logger()
@@ -45,7 +40,7 @@ class DockerSandbox(Sandbox):
         """Return the container for tool execution."""
         return self.container
 
-    async def execute_command(self, command: str, timeout: Optional[int] = None) -> Dict[str, Any]:
+    async def execute_command(self, command: str, timeout: Optional[int] = None) -> CommandResult:
         """Execute a command in the container."""
         if not self.container:
             raise RuntimeError('Container is not running')
@@ -65,11 +60,23 @@ class DockerSandbox(Sandbox):
             stdout = exec_result.output[0].decode('utf-8') if exec_result.output[0] else ''
             stderr = exec_result.output[1].decode('utf-8') if exec_result.output[1] else ''
 
-            return {'exit_code': exec_result.exit_code, 'stdout': stdout, 'stderr': stderr}
+            return CommandResult(
+                command=command,
+                status=ExecutionStatus.SUCCESS if exec_result.exit_code == 0 else ExecutionStatus.ERROR,
+                exit_code=exec_result.exit_code,
+                stdout=stdout,
+                stderr=stderr
+            )
         except asyncio.TimeoutError:
-            return {'exit_code': -1, 'stdout': '', 'stderr': f'Command timed out after {actual_timeout} seconds'}
+            return CommandResult(
+                command=command,
+                status=ExecutionStatus.TIMEOUT,
+                exit_code=-1,
+                stdout='',
+                stderr=f'Command timed out after {actual_timeout} seconds'
+            )
         except Exception as e:
-            return {'exit_code': -1, 'stdout': '', 'stderr': str(e)}
+            return CommandResult(command=command, status=ExecutionStatus.ERROR, exit_code=-1, stdout='', stderr=str(e))
 
     async def start(self) -> None:
         """Start the Docker container."""
@@ -89,7 +96,7 @@ class DockerSandbox(Sandbox):
             # Initialize tools
             await self.initialize_tools()
 
-            self.update_status(SandboxStatus.READY)
+            self.update_status(SandboxStatus.RUNNING)
 
         except Exception as e:
             self.update_status(SandboxStatus.ERROR)
