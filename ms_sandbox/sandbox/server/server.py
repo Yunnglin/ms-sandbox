@@ -66,7 +66,7 @@ class SandboxServer:
         @self.app.get('/health', response_model=HealthCheckResult)
         async def health_check():
             """Health check endpoint."""
-            stats = self.manager.get_stats()
+            stats = await self.manager.get_stats()
             return HealthCheckResult(
                 healthy=True,
                 version='1.0.0',
@@ -77,7 +77,7 @@ class SandboxServer:
 
         # Sandbox management
         @self.app.post('/sandbox/create')
-        async def create_sandbox(sandbox_type: SandboxType, config: Optional[SandboxConfig] = None):
+        async def create_sandbox(sandbox_type: SandboxType, config: Optional[Dict] = None):
             """Create a new sandbox."""
             try:
                 sandbox_id = await self.manager.create_sandbox(sandbox_type, config)
@@ -87,6 +87,12 @@ class SandboxServer:
             except Exception as e:
                 raise HTTPException(status_code=400, detail=str(e))
 
+        @self.app.get('/sandboxes')
+        async def list_sandboxes(status: Optional[SandboxStatus] = None):
+            """List all sandboxes."""
+            sandboxes = await self.manager.list_sandboxes(status)
+            return sandboxes
+
         @self.app.get('/sandbox/{sandbox_id}', response_model=SandboxInfo)
         async def get_sandbox_info(sandbox_id: str):
             """Get sandbox information."""
@@ -95,11 +101,13 @@ class SandboxServer:
                 raise HTTPException(status_code=404, detail='Sandbox not found')
             return info
 
-        @self.app.get('/sandbox/list')
-        async def list_sandboxes(status: Optional[SandboxStatus] = None, response_model=List[SandboxInfo]):
-            """List all sandboxes."""
-            sandboxes = await self.manager.list_sandboxes(status)
-            return sandboxes
+        @self.app.post('/sandbox/{sandbox_id}/stop')
+        async def stop_sandbox(sandbox_id: str):
+            """Stop a sandbox."""
+            success = await self.manager.stop_sandbox(sandbox_id)
+            if not success:
+                raise HTTPException(status_code=404, detail='Sandbox not found')
+            return {'message': 'Sandbox stopped successfully'}
 
         @self.app.delete('/sandbox/{sandbox_id}')
         async def delete_sandbox(sandbox_id: str):
@@ -134,7 +142,7 @@ class SandboxServer:
         @self.app.get('/stats')
         async def get_stats():
             """Get system statistics."""
-            return self.manager.get_stats()
+            return await self.manager.get_stats()
 
     def run(self, host: str = '0.0.0.0', port: int = 8000, **kwargs):
         """Run the server.

@@ -73,8 +73,8 @@ class HttpSandboxManager(SandboxManager):
             raise RuntimeError('Manager not started')
 
         # Match server's endpoint format: POST /sandbox/create
-        params = {'sandbox_type': sandbox_type}
-        payload = config.model_dump()
+        params = {'sandbox_type': sandbox_type.value}
+        payload = config.model_dump() if config else {}
 
         try:
             async with self._session.post(f'{self.base_url}/sandbox/create', params=params, json=payload) as response:
@@ -137,8 +137,8 @@ class HttpSandboxManager(SandboxManager):
             params['status'] = status_filter.value
 
         try:
-            # Match server's endpoint format: GET /sandbox/list
-            async with self._session.get(f'{self.base_url}/sandbox/list', params=params) as response:
+            # Match server's endpoint format: GET /sandboxes
+            async with self._session.get(f'{self.base_url}/sandboxes', params=params) as response:
                 if response.status == 200:
                     data = await response.json()
                     return [SandboxInfo.model_validate(item) for item in data]
@@ -154,25 +154,31 @@ class HttpSandboxManager(SandboxManager):
     async def stop_sandbox(self, sandbox_id: str) -> bool:
         """Stop a sandbox via HTTP API.
 
-        Note: The server doesn't have a dedicated stop endpoint,
-        so we implement this by checking if sandbox exists.
-
         Args:
             sandbox_id: Sandbox ID
 
         Returns:
-            True if sandbox exists, False if not found
+            True if stopped successfully, False if not found
         """
         if not self._session:
             raise RuntimeError('Manager not started')
 
-        # Since server doesn't have stop endpoint, just check if sandbox exists
-        info = await self.get_sandbox_info(sandbox_id)
-        if info:
-            logger.info(f'Sandbox {sandbox_id} exists (stop operation not supported by server)')
-            return True
-        else:
-            logger.warning(f'Sandbox {sandbox_id} not found for stopping')
+        try:
+            # Match server's endpoint format: POST /sandbox/{sandbox_id}/stop
+            async with self._session.post(f'{self.base_url}/sandbox/{sandbox_id}/stop') as response:
+                if response.status == 200:
+                    logger.info(f'Stopped sandbox {sandbox_id} via HTTP API')
+                    return True
+                elif response.status == 404:
+                    logger.warning(f'Sandbox {sandbox_id} not found for stopping')
+                    return False
+                else:
+                    error_data = await response.json()
+                    logger.error(f'Error stopping sandbox: HTTP {response.status}: {error_data}')
+                    return False
+
+        except aiohttp.ClientError as e:
+            logger.error(f'HTTP client error stopping sandbox: {e}')
             return False
 
     async def delete_sandbox(self, sandbox_id: str) -> bool:
@@ -304,24 +310,7 @@ class HttpSandboxManager(SandboxManager):
         except Exception as e:
             logger.error(f'HTTP client error cleaning up sandboxes: {e}')
 
-    def get_stats(self) -> Dict[str, Any]:
-        """Get manager statistics via HTTP API.
-
-        Returns:
-            Statistics dictionary
-        """
-        if not self._session:
-            return {'manager_type': 'http', 'base_url': self.base_url, 'running': False, 'error': 'Manager not started'}
-
-        # Return basic stats since server stats endpoint exists but may not match local format
-        return {
-            'manager_type': 'http',
-            'base_url': self.base_url,
-            'running': self._running,
-            'timeout': self.timeout.total,
-        }
-
-    async def get_server_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> Dict[str, Any]:
         """Get server statistics via HTTP API.
 
         Returns:

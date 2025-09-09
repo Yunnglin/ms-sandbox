@@ -2,9 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import Field
-
-from .base import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ExecuteCodeRequest(BaseModel):

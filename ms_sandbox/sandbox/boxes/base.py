@@ -2,7 +2,7 @@
 
 import abc
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, Union
 
 import shortuuid as uuid
 
@@ -175,7 +175,10 @@ class SandboxFactory:
 
     @classmethod
     def create_sandbox(
-        cls, sandbox_type: SandboxType, config: Optional[SandboxConfig], sandbox_id: Optional[str] = None
+        cls,
+        sandbox_type: SandboxType,
+        config: Optional[Union[SandboxConfig, Dict]],
+        sandbox_id: Optional[str] = None
     ) -> Sandbox:
         """Create a sandbox instance.
 
@@ -195,6 +198,11 @@ class SandboxFactory:
 
         # Parse config based on sandbox type
         if not config:
+            if sandbox_type == SandboxType.DOCKER:
+                config = DockerSandboxConfig()
+            else:
+                config = SandboxConfig()
+        elif isinstance(config, dict):
             if sandbox_type == SandboxType.DOCKER:
                 config = DockerSandboxConfig(**config)
             else:

@@ -3,9 +3,9 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
-from .base import BaseModel, ExecutionStatus, SandboxStatus
+from .base import ExecutionStatus, SandboxStatus
 
 
 class SandboxInfo(BaseModel):
@@ -18,7 +18,7 @@ class SandboxInfo(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now, description='Creation timestamp')
     updated_at: datetime = Field(default_factory=datetime.now, description='Last update timestamp')
     metadata: Dict[str, Any] = Field(default_factory=dict, description='Additional metadata')
-    available_tools: List[str] = Field(default_factory=list, description='Available tools')
+    available_tools: Dict[str, Any] = Field(default_factory=dict, description='Available tools')
 
 
 class ToolExecutionResult(BaseModel):

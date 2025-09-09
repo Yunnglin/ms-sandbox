@@ -51,12 +51,23 @@ class DockerSandbox(Sandbox):
             raise RuntimeError('Container is not running')
 
         try:
-            exec_result = self.container.exec_run(command, tty=True, stream=False, demux=True, timeout=timeout or 30)
+            # Determine actual timeout
+            actual_timeout = timeout or 30
+
+            # Execute command asynchronously
+            exec_result = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    None, lambda: self.container.exec_run(command, tty=True, stream=False, demux=True)
+                ),
+                timeout=actual_timeout
+            )
 
             stdout = exec_result.output[0].decode('utf-8') if exec_result.output[0] else ''
             stderr = exec_result.output[1].decode('utf-8') if exec_result.output[1] else ''
 
             return {'exit_code': exec_result.exit_code, 'stdout': stdout, 'stderr': stderr}
+        except asyncio.TimeoutError:
+            return {'exit_code': -1, 'stdout': '', 'stderr': f'Command timed out after {actual_timeout} seconds'}
         except Exception as e:
             return {'exit_code': -1, 'stdout': '', 'stderr': str(e)}
 

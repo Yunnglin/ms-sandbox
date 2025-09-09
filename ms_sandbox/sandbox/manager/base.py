@@ -123,7 +123,7 @@ class SandboxManager(ABC):
         pass
 
     @abstractmethod
-    def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> Dict[str, Any]:
         """Get manager statistics.
 
         Returns:

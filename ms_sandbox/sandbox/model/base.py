@@ -1,18 +1,6 @@
 """Base data models."""
 
 from enum import Enum
-from typing import Any, Dict, Optional
-
-from pydantic import BaseModel as PydanticBaseModel
-from pydantic import Field
-
-
-class BaseModel(PydanticBaseModel):
-    """Base model with common configuration."""
-
-    class Config:
-        extra = 'forbid'
-        validate_assignment = True
 
 
 class SandboxStatus(str, Enum):
@@ -21,6 +9,7 @@ class SandboxStatus(str, Enum):
     INITIALIZING = 'initializing'
     READY = 'ready'
     RUNNING = 'running'
+    STOPPING = 'stopping'
     STOPPED = 'stopped'
     ERROR = 'error'
     CLEANUP = 'cleanup'

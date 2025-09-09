@@ -2,9 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import Field, field_validator
-
-from .base import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 class SandboxConfig(BaseModel):
@@ -21,7 +19,7 @@ class SandboxConfig(BaseModel):
 class DockerSandboxConfig(SandboxConfig):
     """Docker-specific sandbox configuration."""
 
-    image: str = Field(..., description='Docker image name')
+    image: str = Field('python:3.11-slim', description='Docker image name')
     command: Optional[Union[str, List[str]]] = Field(None, description='Container command')
     volumes: Dict[str, str] = Field(default_factory=dict, description='Volume mounts')
     ports: Dict[str, str] = Field(default_factory=dict, description='Port mappings')

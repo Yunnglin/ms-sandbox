@@ -1,8 +1,6 @@
 """Python code execution tool."""
 
-import json
 import os
-import tempfile
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from ..model import ExecutionStatus, SandboxType, ToolExecutionResult
@@ -10,16 +8,13 @@ from .base import Tool, register_tool
 from .sandbox_tool import SandboxTool
 from .tool_info import ToolParams
 
-if TYPE_CHECKING:
-    from ms_sandbox.sandbox.boxes import DockerSandbox
-
 
 @register_tool('python_executor')
 class PythonExecutor(SandboxTool):
 
-    _name = 'python_executor',
-    _sandbox_type = SandboxType.DOCKER,
-    _description = 'Execute Python code in an isolated environment using IPython',
+    _name = 'python_executor'
+    _sandbox_type = SandboxType.DOCKER
+    _description = 'Execute Python code in an isolated environment using IPython'
     _parameters = ToolParams(
         type='object',
         properties={
@@ -36,13 +31,13 @@ class PythonExecutor(SandboxTool):
         required=['code']
     )
 
-    async def execute(
-        self, sandbox_context: 'DockerSandbox', code: str, timeout: Optional[int] = 30
-    ) -> ToolExecutionResult:
+    async def execute(self, sandbox_context, code: str, timeout: Optional[int] = 30) -> ToolExecutionResult:
         """Execute Python code using IPython in the Docker container."""
 
         if not code.strip():
-            return ToolExecutionResult(status=ExecutionStatus.ERROR, output='', error='No code provided')
+            return ToolExecutionResult(
+                tool_name=self.name, status=ExecutionStatus.ERROR, result='', error='No code provided'
+            )
 
         try:
             # Create a temporary Python script
@@ -58,17 +53,23 @@ class PythonExecutor(SandboxTool):
 
             if result['exit_code'] == 0:
                 return ToolExecutionResult(
+                    tool_name=self.name,
                     status=ExecutionStatus.SUCCESS,
-                    output=result['stdout'],
+                    result=result['stdout'],
                     error=result['stderr'] if result['stderr'] else None
                 )
             else:
                 return ToolExecutionResult(
-                    status=ExecutionStatus.ERROR, output=result['stdout'], error=result['stderr']
+                    tool_name=self.name,
+                    status=ExecutionStatus.ERROR,
+                    result=result['stdout'],
+                    error=result['stderr'] if result['stderr'] else None
                 )
 
         except Exception as e:
-            return ToolExecutionResult(status=ExecutionStatus.ERROR, output='', error=f'Execution failed: {str(e)}')
+            return ToolExecutionResult(
+                tool_name=self.name, status=ExecutionStatus.ERROR, result='', error=f'Execution failed: {str(e)}'
+            )
 
     def _create_execution_script(self, code: str) -> str:
         """Create a Python script that captures output and errors."""
@@ -83,7 +84,7 @@ from contextlib import redirect_stdout, redirect_stderr
 stdout_capture = io.StringIO()
 stderr_capture = io.StringIO()
 
-result = {{
+_execution_result = {{
     "status": "success",
     "output": "",
     "error": None
@@ -96,23 +97,23 @@ try:
 {code}
 """)
 
-    result["output"] = stdout_capture.getvalue()
+    _execution_result["output"] = stdout_capture.getvalue()
     stderr_content = stderr_capture.getvalue()
     if stderr_content:
-        result["error"] = stderr_content
+        _execution_result["error"] = stderr_content
 
 except Exception as e:
-    result["status"] = "error"
-    result["output"] = stdout_capture.getvalue()
-    result["error"] = f"{{type(e).__name__}}: {{str(e)}}\\n{{traceback.format_exc()}}"
+    _execution_result["status"] = "error"
+    _execution_result["output"] = stdout_capture.getvalue()
+    _execution_result["error"] = f"{{type(e).__name__}}: {{str(e)}}\\n{{traceback.format_exc()}}"
 
 # Print result as JSON for easy parsing
 print("=== EXECUTION_RESULT ===")
-print(json.dumps(result, ensure_ascii=False, indent=2))
+print(json.dumps(_execution_result, ensure_ascii=False, indent=2))
 '''
         return script
 
-    async def _write_file_to_container(self, container, file_path: str, content: str) -> None:
+    async def _write_file_to_container(self, sandbox_context, file_path: str, content: str) -> None:
         """Write content to a file in the container."""
         import io
         import tarfile
@@ -130,4 +131,4 @@ print(json.dumps(result, ensure_ascii=False, indent=2))
 
         # Write to container
         tar_stream.seek(0)
-        container.put_archive(os.path.dirname(file_path), tar_stream.getvalue())
+        sandbox_context.container.put_archive(os.path.dirname(file_path), tar_stream.getvalue())

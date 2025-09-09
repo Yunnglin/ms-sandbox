@@ -234,7 +234,7 @@ class LocalSandboxManager(SandboxManager):
             except Exception as e:
                 logger.error(f'Error cleaning up sandbox {sandbox_id}: {e}')
 
-    def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> Dict[str, Any]:
         """Get manager statistics.
 
         Returns:
