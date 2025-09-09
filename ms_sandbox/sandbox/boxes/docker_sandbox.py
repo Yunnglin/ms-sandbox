@@ -48,31 +48,17 @@ class DockerSandbox(Sandbox):
     async def execute_command(self, command: str, timeout: Optional[int] = None) -> Dict[str, Any]:
         """Execute a command in the container."""
         if not self.container:
-            raise RuntimeError("Container is not running")
+            raise RuntimeError('Container is not running')
 
         try:
-            exec_result = self.container.exec_run(
-                command,
-                tty=True,
-                stream=False,
-                demux=True,
-                timeout=timeout or 30
-            )
-            
-            stdout = exec_result.output[0].decode('utf-8') if exec_result.output[0] else ""
-            stderr = exec_result.output[1].decode('utf-8') if exec_result.output[1] else ""
-            
-            return {
-                'exit_code': exec_result.exit_code,
-                'stdout': stdout,
-                'stderr': stderr
-            }
+            exec_result = self.container.exec_run(command, tty=True, stream=False, demux=True, timeout=timeout or 30)
+
+            stdout = exec_result.output[0].decode('utf-8') if exec_result.output[0] else ''
+            stderr = exec_result.output[1].decode('utf-8') if exec_result.output[1] else ''
+
+            return {'exit_code': exec_result.exit_code, 'stdout': stdout, 'stderr': stderr}
         except Exception as e:
-            return {
-                'exit_code': -1,
-                'stdout': "",
-                'stderr': str(e)
-            }
+            return {'exit_code': -1, 'stdout': '', 'stderr': str(e)}
 
     async def start(self) -> None:
         """Start the Docker container."""

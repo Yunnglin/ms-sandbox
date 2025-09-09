@@ -6,7 +6,7 @@ import aiohttp
 
 from ms_sandbox.utils import get_logger
 
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolExecutionResult, ToolExecutionRequest
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolExecutionRequest, ToolExecutionResult
 from .base import SandboxManager
 
 logger = get_logger()
@@ -50,7 +50,10 @@ class HttpSandboxManager(SandboxManager):
         logger.info('HTTP sandbox manager stopped')
 
     async def create_sandbox(
-        self, sandbox_type: SandboxType, config: Optional[SandboxConfig]=None, sandbox_id: Optional[str] = None
+        self,
+        sandbox_type: SandboxType,
+        config: Optional[SandboxConfig] = None,
+        sandbox_id: Optional[str] = None
     ) -> str:
         """Create a new sandbox via HTTP API.
 
@@ -220,11 +223,7 @@ class HttpSandboxManager(SandboxManager):
             raise RuntimeError('Manager not started')
 
         # Create proper request object to match server expectations
-        request = ToolExecutionRequest(
-            sandbox_id=sandbox_id,
-            tool_name=tool_name,
-            parameters=parameters
-        )
+        request = ToolExecutionRequest(sandbox_id=sandbox_id, tool_name=tool_name, parameters=parameters)
         payload = request.model_dump()
 
         try:

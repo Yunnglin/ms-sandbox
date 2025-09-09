@@ -1,13 +1,14 @@
 """Base tool interface and factory."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type
 
-from ..model import ToolExecutionResult, SandboxType, ToolType
+from ..model import SandboxType, ToolExecutionResult
 from .tool_info import ToolParams
 
 if TYPE_CHECKING:
     from ms_sandbox.sandbox.boxes import Sandbox
+
 
 class Tool(ABC):
     """Abstract base class for all tools."""
@@ -76,7 +77,7 @@ class ToolFactory:
     def create_tool(cls, tool_name: str, **kwargs) -> Tool:
         if tool_name not in cls._tools:
             raise ValueError(f'Tool name {tool_name} is not registered')
-        
+
         tool_class = cls._tools[tool_name]
         return tool_class(**kwargs)
 
@@ -86,7 +87,9 @@ class ToolFactory:
 
 
 def register_tool(tool_name: str):
+
     def decorator(tool_class: Type[Tool]):
         ToolFactory.register_tool(tool_name, tool_class)
         return tool_class
+
     return decorator

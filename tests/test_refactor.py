@@ -13,7 +13,6 @@ async def test_imports():
 
     try:
         from ms_sandbox.sandbox import (
-            Sandbox,
             DockerSandbox,
             DockerSandboxConfig,
             ExecutionStatus,
@@ -22,6 +21,7 @@ async def test_imports():
             HttpSandboxClient,
             LocalSandboxManager,
             PythonExecutor,
+            Sandbox,
             SandboxConfig,
             SandboxServer,
             SandboxStatus,

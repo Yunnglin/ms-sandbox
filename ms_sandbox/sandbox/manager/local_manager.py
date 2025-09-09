@@ -58,7 +58,10 @@ class LocalSandboxManager(SandboxManager):
         logger.info('Local sandbox manager stopped')
 
     async def create_sandbox(
-        self, sandbox_type: SandboxType, config: Optional[SandboxConfig]=None, sandbox_id: Optional[str] = None
+        self,
+        sandbox_type: SandboxType,
+        config: Optional[SandboxConfig] = None,
+        sandbox_id: Optional[str] = None
     ) -> str:
         """Create a new sandbox.
 

@@ -3,11 +3,20 @@
 import abc
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type
+
 import shortuuid as uuid
 
 from ms_sandbox.utils import get_logger
 
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus, DockerSandboxConfig, SandboxType, ToolExecutionResult, ToolType
+from ..model import (
+    DockerSandboxConfig,
+    SandboxConfig,
+    SandboxInfo,
+    SandboxStatus,
+    SandboxType,
+    ToolExecutionResult,
+    ToolType,
+)
 from ..tools import Tool, ToolFactory
 
 logger = get_logger()
@@ -59,11 +68,12 @@ class Sandbox(abc.ABC):
                 tool = ToolFactory.create_tool(tool_name, **config)
                 if tool.enabled:
                     # Check if tool is compatible with this sandbox
-                    if (tool.required_sandbox_type is None or 
-                        tool.required_sandbox_type == self.sandbox_type):
+                    if (tool.required_sandbox_type is None or tool.required_sandbox_type == self.sandbox_type):
                         self._tools[tool_name] = tool
                     else:
-                        logger.warning(f'Tool {tool_name} requires {tool.required_sandbox_type} but sandbox is {self.sandbox_type}')
+                        logger.warning(
+                            f'Tool {tool_name} requires {tool.required_sandbox_type} but sandbox is {self.sandbox_type}'
+                        )
             except Exception as e:
                 logger.error(f'Failed to initialize tool {tool_name}: {e}')
 
@@ -182,7 +192,7 @@ class SandboxFactory:
         """
         if sandbox_type not in cls._sandboxes:
             raise ValueError(f'Sandbox type {sandbox_type} is not registered')
-        
+
         # Parse config based on sandbox type
         if not config:
             if sandbox_type == SandboxType.DOCKER:

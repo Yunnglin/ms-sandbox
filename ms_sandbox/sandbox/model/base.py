@@ -14,6 +14,7 @@ class BaseModel(PydanticBaseModel):
         extra = 'forbid'
         validate_assignment = True
 
+
 class SandboxStatus(str, Enum):
     """Sandbox status enumeration."""
 
@@ -36,6 +37,7 @@ class ToolType(str, Enum):
     SANDBOX = 'sandbox'
     FUNCTION = 'function'
     EXTERNAL = 'external'
+
 
 class ExecutionStatus(str, Enum):
     """Execution status enumeration."""

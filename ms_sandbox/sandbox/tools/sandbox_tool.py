@@ -1,9 +1,10 @@
-from typing import Optional, Any, Dict
+from typing import Any, Dict, Optional
 
-from ms_sandbox.sandbox.boxes import SandboxFactory, Sandbox
+from ms_sandbox.sandbox.boxes import Sandbox, SandboxFactory
+
+from ..model import SandboxType, ToolType
 from .base import Tool
 from .tool_info import ToolParams
-from ..model import SandboxType, ToolType
 
 
 class SandboxTool(Tool):
@@ -41,7 +42,6 @@ class SandboxTool(Tool):
         self._parameters = parameters or self.__class__._parameters
         self._sandbox_type = sandbox_type or self.__class__._sandbox_type
 
-    
     def required_sandbox_type(self) -> Optional[SandboxType]:
         """Get the required sandbox type for this tool."""
         return self._sandbox_type

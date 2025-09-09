@@ -5,7 +5,7 @@ A modular, extensible sandbox system for safe code execution with Docker isolati
 FastAPI-based client/server architecture, and comprehensive tool support.
 """
 
-from .boxes import Sandbox, DockerSandbox, SandboxFactory
+from .boxes import DockerSandbox, Sandbox, SandboxFactory
 from .manager import HttpSandboxManager, LocalSandboxManager
 
 # Import main components

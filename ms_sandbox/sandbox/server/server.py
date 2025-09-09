@@ -16,7 +16,7 @@ from ..model import (
     SandboxStatus,
     SandboxType,
     ToolExecutionRequest,
-    ToolExecutionResult
+    ToolExecutionResult,
 )
 
 
@@ -77,7 +77,7 @@ class SandboxServer:
 
         # Sandbox management
         @self.app.post('/sandbox/create')
-        async def create_sandbox(sandbox_type: SandboxType, config: Optional[SandboxConfig]=None):
+        async def create_sandbox(sandbox_type: SandboxType, config: Optional[SandboxConfig] = None):
             """Create a new sandbox."""
             try:
                 sandbox_id = await self.manager.create_sandbox(sandbox_type, config)
