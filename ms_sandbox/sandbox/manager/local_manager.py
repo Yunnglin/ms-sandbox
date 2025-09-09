@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Optional
 
 from ms_sandbox.utils import get_logger
 
-from ..boxes import BaseSandbox, SandboxFactory
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType
+from ..boxes import Sandbox, SandboxFactory
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolExecutionResult
 from .base import SandboxManager
 
 logger = get_logger()
@@ -24,7 +24,7 @@ class LocalSandboxManager(SandboxManager):
         Args:
             cleanup_interval: Interval between cleanup runs in seconds
         """
-        self._sandboxes: Dict[str, BaseSandbox] = {}
+        self._sandboxes: Dict[str, Sandbox] = {}
         self._cleanup_interval = cleanup_interval
         self._cleanup_task: Optional[asyncio.Task] = None
         self._running = False
@@ -58,7 +58,7 @@ class LocalSandboxManager(SandboxManager):
         logger.info('Local sandbox manager stopped')
 
     async def create_sandbox(
-        self, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None
+        self, sandbox_type: SandboxType, config: Optional[SandboxConfig]=None, sandbox_id: Optional[str] = None
     ) -> str:
         """Create a new sandbox.
 
@@ -91,7 +91,7 @@ class LocalSandboxManager(SandboxManager):
             logger.error(f'Failed to create sandbox of type {sandbox_type}: {e}')
             raise RuntimeError(f'Failed to create sandbox: {e}')
 
-    async def get_sandbox(self, sandbox_id: str) -> Optional[BaseSandbox]:
+    async def get_sandbox(self, sandbox_id: str) -> Optional[Sandbox]:
         """Get sandbox by ID.
 
         Args:
@@ -178,7 +178,7 @@ class LocalSandboxManager(SandboxManager):
             logger.error(f'Error deleting sandbox {sandbox_id}: {e}')
             return False
 
-    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> ToolExecutionResult:
         """Execute tool in sandbox.
 
         Args:
@@ -199,13 +199,8 @@ class LocalSandboxManager(SandboxManager):
         if sandbox.status != SandboxStatus.RUNNING:
             raise ValueError(f'Sandbox {sandbox_id} is not running (status: {sandbox.status})')
 
-        tool = sandbox.get_tool(tool_name)
-        if not tool:
-            raise ValueError(f'Tool {tool_name} not available in sandbox {sandbox_id}')
-
-        logger.debug(f'Executing tool {tool_name} in sandbox {sandbox_id}')
-        result = await tool.execute(parameters)
-        return result.model_dump()
+        result = await sandbox.execute_tool(tool_name, parameters)
+        return result
 
     async def get_sandbox_tools(self, sandbox_id: str) -> Dict[str, Any]:
         """Get available tools for a sandbox.

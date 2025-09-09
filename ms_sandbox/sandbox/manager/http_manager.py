@@ -6,7 +6,7 @@ import aiohttp
 
 from ms_sandbox.utils import get_logger
 
-from ..model import DockerSandboxConfig, SandboxConfig, SandboxInfo, SandboxStatus, SandboxType
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolExecutionResult, ToolExecutionRequest
 from .base import SandboxManager
 
 logger = get_logger()
@@ -50,7 +50,7 @@ class HttpSandboxManager(SandboxManager):
         logger.info('HTTP sandbox manager stopped')
 
     async def create_sandbox(
-        self, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None
+        self, sandbox_type: SandboxType, config: Optional[SandboxConfig]=None, sandbox_id: Optional[str] = None
     ) -> str:
         """Create a new sandbox via HTTP API.
 
@@ -138,7 +138,7 @@ class HttpSandboxManager(SandboxManager):
             async with self._session.get(f'{self.base_url}/sandbox/list', params=params) as response:
                 if response.status == 200:
                     data = await response.json()
-                    return [SandboxInfo.model_validate(item) for item in data['sandboxes']]
+                    return [SandboxInfo.model_validate(item) for item in data]
                 else:
                     error_data = await response.json()
                     logger.error(f'Error listing sandboxes: HTTP {response.status}: {error_data}')
@@ -202,7 +202,7 @@ class HttpSandboxManager(SandboxManager):
             logger.error(f'HTTP client error deleting sandbox: {e}')
             return False
 
-    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> ToolExecutionResult:
         """Execute tool in sandbox via HTTP API.
 
         Args:
@@ -219,14 +219,20 @@ class HttpSandboxManager(SandboxManager):
         if not self._session:
             raise RuntimeError('Manager not started')
 
-        # Match server's endpoint format and ToolExecutionRequest structure
-        payload = {'sandbox_id': sandbox_id, 'tool_name': tool_name, 'parameters': parameters}
+        # Create proper request object to match server expectations
+        request = ToolExecutionRequest(
+            sandbox_id=sandbox_id,
+            tool_name=tool_name,
+            parameters=parameters
+        )
+        payload = request.model_dump()
 
         try:
             # Match server's endpoint format: POST /sandbox/tool/execute
             async with self._session.post(f'{self.base_url}/sandbox/tool/execute', json=payload) as response:
                 if response.status == 200:
-                    return await response.json()
+                    data = await response.json()
+                    return ToolExecutionResult.model_validate(data)
                 elif response.status == 404:
                     error_data = await response.json()
                     raise ValueError(error_data.get('detail', f'Sandbox {sandbox_id} not found'))

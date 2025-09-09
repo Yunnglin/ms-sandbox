@@ -14,17 +14,10 @@ ToolParam: TypeAlias = JSONSchema
 class ToolParams(BaseModel):
     """Description of tool parameters object in JSON Schema format."""
 
-    type: Literal['object'] = Field(default='object')
-    """Params type (always 'object')"""
-
-    properties: Dict[str, ToolParam] = Field(default_factory=dict)
-    """Tool function parameters."""
-
-    required: List[str] = Field(default_factory=list)
-    """List of required fields."""
-
-    additionalProperties: bool = Field(default=False)
-    """Are additional object properties allowed? (always `False`)"""
+    type: Literal['object'] = Field(default='object', description="Params type (always 'object')")
+    properties: Dict[str, ToolParam] = Field(default_factory=dict, description="Tool function parameters.")
+    required: List[str] = Field(default_factory=list, description="List of required fields.")
+    additionalProperties: bool = Field(default=False, description="Are additional object properties allowed? (always `False`)")
 
 
 class ToolInfo(BaseModel):
@@ -54,14 +47,10 @@ class ToolInfo(BaseModel):
     ```
     """
 
-    name: str
-    """Name of tool."""
-    description: str
-    """Short description of tool."""
-    parameters: ToolParams = Field(default_factory=ToolParams)
-    """JSON Schema of tool parameters object."""
-    options: Optional[Dict[str, object]] = Field(default=None)
-    """Optional property bag that can be used by the model provider to customize the implementation of the tool"""
+    name: str = Field(description="Name of tool.")
+    description: str = Field(description="Short description of tool.")
+    parameters: ToolParams = Field(default_factory=ToolParams, description="JSON Schema of tool parameters object.")
+    options: Optional[Dict[str, object]] = Field(default=None, description="Optional property bag that can be used by the model provider to customize the implementation of the tool")
 
 
 def parse_tool_info(func: Callable[..., Any]) -> ToolInfo:

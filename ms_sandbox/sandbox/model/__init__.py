@@ -1,6 +1,6 @@
 """Data models for sandbox system."""
 
-from .base import BaseModel, ExecutionStatus, SandboxBase, SandboxStatus, SandboxType
+from .base import BaseModel, ExecutionStatus, SandboxStatus, SandboxType, ToolType
 from .config import (
     DockerSandboxConfig,
     FileOperationConfig,
@@ -17,4 +17,4 @@ from .requests import (
     ToolExecutionRequest,
     WriteFileRequest,
 )
-from .responses import ExecutionResult, FileOperationResult, HealthCheckResult, SandboxInfo, ToolExecutionResult
+from .responses import HealthCheckResult, SandboxInfo, ToolExecutionResult

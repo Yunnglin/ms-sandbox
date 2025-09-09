@@ -3,19 +3,17 @@
 import abc
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type
-
 import shortuuid as uuid
 
-from ms_sandbox.sandbox.model.base import SandboxType
 from ms_sandbox.utils import get_logger
 
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, DockerSandboxConfig, SandboxType, ToolExecutionResult, ToolType
 from ..tools import Tool, ToolFactory
 
 logger = get_logger()
 
 
-class BaseSandbox(abc.ABC):
+class Sandbox(abc.ABC):
     """Abstract base class for all sandbox implementations."""
 
     def __init__(self, config: SandboxConfig, sandbox_id: Optional[str] = None):
@@ -55,19 +53,18 @@ class BaseSandbox(abc.ABC):
         pass
 
     async def initialize_tools(self) -> None:
-        """Initialize sandbox tools.
-
-        Args:
-            tool_configs: Tool configurations
-        """
-        # Initialize default tools
+        """Initialize sandbox tools."""
         for tool_name, config in self.config.tools_config.items():
             try:
                 tool = ToolFactory.create_tool(tool_name, **config)
                 if tool.enabled:
-                    self._tools[tool_name] = tool
+                    # Check if tool is compatible with this sandbox
+                    if (tool.required_sandbox_type is None or 
+                        tool.required_sandbox_type == self.sandbox_type):
+                        self._tools[tool_name] = tool
+                    else:
+                        logger.warning(f'Tool {tool_name} requires {tool.required_sandbox_type} but sandbox is {self.sandbox_type}')
             except Exception as e:
-                # Log error but continue with other tools
                 logger.error(f'Failed to initialize tool {tool_name}: {e}')
 
     def get_available_tools(self) -> Dict[str, Any]:
@@ -84,6 +81,35 @@ class BaseSandbox(abc.ABC):
             Tool instance or None if not available
         """
         return self._tools.get(tool_name)
+
+    async def execute_tool(self, tool_name: str, parameters: Dict[str, Any]) -> ToolExecutionResult:
+        """Execute a tool with given parameters.
+
+        Args:
+            tool_name: Tool name
+            parameters: Tool parameters
+
+        Returns:
+            Tool execution result
+
+        Raises:
+            ValueError: If tool is not found or not enabled
+            TimeoutError: If tool execution exceeds timeout
+            Exception: For other execution errors
+        """
+        tool = self.get_tool(tool_name)
+        if not tool:
+            raise ValueError(f'Tool {tool_name} is not available')
+        if not tool.enabled:
+            raise ValueError(f'Tool {tool_name} is not enabled')
+
+        result = await tool.execute(sandbox_context=self, **parameters)
+        return result
+
+    @abc.abstractmethod
+    async def get_execution_context(self) -> Any:
+        """Get the execution context for tools (e.g., container, process, etc.)."""
+        pass
 
     def update_status(self, status: SandboxStatus) -> None:
         """Update sandbox status.
@@ -125,10 +151,10 @@ class BaseSandbox(abc.ABC):
 class SandboxFactory:
     """Factory for creating sandbox instances."""
 
-    _sandboxes: Dict[SandboxType, Type[BaseSandbox]] = {}
+    _sandboxes: Dict[SandboxType, Type[Sandbox]] = {}
 
     @classmethod
-    def register_sandbox(cls, sandbox_type: SandboxType, sandbox_class: Type[BaseSandbox]):
+    def register_sandbox(cls, sandbox_type: SandboxType, sandbox_class: Type[Sandbox]):
         """Register a sandbox class.
 
         Args:
@@ -139,8 +165,8 @@ class SandboxFactory:
 
     @classmethod
     def create_sandbox(
-        cls, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None
-    ) -> BaseSandbox:
+        cls, sandbox_type: SandboxType, config: Optional[SandboxConfig], sandbox_id: Optional[str] = None
+    ) -> Sandbox:
         """Create a sandbox instance.
 
         Args:
@@ -156,6 +182,13 @@ class SandboxFactory:
         """
         if sandbox_type not in cls._sandboxes:
             raise ValueError(f'Sandbox type {sandbox_type} is not registered')
+        
+        # Parse config based on sandbox type
+        if not config:
+            if sandbox_type == SandboxType.DOCKER:
+                config = DockerSandboxConfig(**config)
+            else:
+                config = SandboxConfig(**config)
 
         sandbox_class = cls._sandboxes[sandbox_type]
         return sandbox_class(config, sandbox_id)
@@ -177,7 +210,7 @@ def register_sandbox(sandbox_type: SandboxType):
         sandbox_type: Sandbox type identifier
     """
 
-    def decorator(sandbox_class: Type[BaseSandbox]):
+    def decorator(sandbox_class: Type[Sandbox]):
         SandboxFactory.register_sandbox(sandbox_type, sandbox_class)
         return sandbox_class
 

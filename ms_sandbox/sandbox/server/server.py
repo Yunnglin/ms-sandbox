@@ -16,6 +16,7 @@ from ..model import (
     SandboxStatus,
     SandboxType,
     ToolExecutionRequest,
+    ToolExecutionResult
 )
 
 
@@ -76,16 +77,10 @@ class SandboxServer:
 
         # Sandbox management
         @self.app.post('/sandbox/create')
-        async def create_sandbox(sandbox_type: SandboxType, config: Dict[str, Any], background_tasks: BackgroundTasks):
+        async def create_sandbox(sandbox_type: SandboxType, config: Optional[SandboxConfig]=None):
             """Create a new sandbox."""
             try:
-                # Parse config based on sandbox type
-                if sandbox_type == SandboxType.DOCKER:
-                    sandbox_config = DockerSandboxConfig(**config)
-                else:
-                    sandbox_config = SandboxConfig(**config)
-
-                sandbox_id = await self.manager.create_sandbox(sandbox_type, sandbox_config)
+                sandbox_id = await self.manager.create_sandbox(sandbox_type, config)
 
                 return {'sandbox_id': sandbox_id}
 
@@ -101,10 +96,10 @@ class SandboxServer:
             return info
 
         @self.app.get('/sandbox/list')
-        async def list_sandboxes(status: Optional[SandboxStatus] = None):
+        async def list_sandboxes(status: Optional[SandboxStatus] = None, response_model=List[SandboxInfo]):
             """List all sandboxes."""
             sandboxes = await self.manager.list_sandboxes(status)
-            return {'sandboxes': sandboxes}
+            return sandboxes
 
         @self.app.delete('/sandbox/{sandbox_id}')
         async def delete_sandbox(sandbox_id: str):
@@ -115,7 +110,7 @@ class SandboxServer:
             return {'message': 'Sandbox deleted successfully'}
 
         # Tool execution
-        @self.app.post('/sandbox/tool/execute')
+        @self.app.post('/sandbox/tool/execute', response_model=ToolExecutionResult)
         async def execute_tool(request: ToolExecutionRequest):
             """Execute tool in sandbox."""
             try:

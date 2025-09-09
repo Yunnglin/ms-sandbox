@@ -14,14 +14,6 @@ class BaseModel(PydanticBaseModel):
         extra = 'forbid'
         validate_assignment = True
 
-
-class SandboxBase(BaseModel):
-    """Base model for sandbox-related objects."""
-
-    id: Optional[str] = Field(None, description='Unique identifier')
-    metadata: Dict[str, Any] = Field(default_factory=dict, description='Additional metadata')
-
-
 class SandboxStatus(str, Enum):
     """Sandbox status enumeration."""
 
@@ -36,7 +28,14 @@ class SandboxStatus(str, Enum):
 class SandboxType(str, Enum):
     """Sandbox type enumeration."""
     DOCKER = 'docker'
+    DUMMY = 'dummy'
 
+
+class ToolType(str, Enum):
+    """Tool type enumeration."""
+    SANDBOX = 'sandbox'
+    FUNCTION = 'function'
+    EXTERNAL = 'external'
 
 class ExecutionStatus(str, Enum):
     """Execution status enumeration."""

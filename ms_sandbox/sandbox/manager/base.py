@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType
+from ..model import SandboxConfig, SandboxInfo, SandboxStatus, SandboxType, ToolExecutionResult
 
 
 class SandboxManager(ABC):
@@ -21,7 +21,7 @@ class SandboxManager(ABC):
 
     @abstractmethod
     async def create_sandbox(
-        self, sandbox_type: SandboxType, config: SandboxConfig, sandbox_id: Optional[str] = None
+        self, sandbox_type: SandboxType, config: Optional[SandboxConfig]=None, sandbox_id: Optional[str] = None
     ) -> str:
         """Create a new sandbox.
 
@@ -88,7 +88,7 @@ class SandboxManager(ABC):
         pass
 
     @abstractmethod
-    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(self, sandbox_id: str, tool_name: str, parameters: Dict[str, Any]) -> ToolExecutionResult:
         """Execute tool in sandbox.
 
         Args:

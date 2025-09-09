@@ -13,7 +13,7 @@ async def test_imports():
 
     try:
         from ms_sandbox.sandbox import (
-            BaseSandbox,
+            Sandbox,
             DockerSandbox,
             DockerSandboxConfig,
             ExecutionStatus,
