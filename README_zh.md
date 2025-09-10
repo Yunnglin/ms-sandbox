@@ -56,7 +56,7 @@ async def main():
         memory_limit='512m',
         tools_config={'python_executor': {}}
     )
-    
+
     # 使用上下文管理器创建和使用沙箱
     async with SandboxFactory.create_sandbox(SandboxType.DOCKER, config) as sandbox:
         # 执行Python代码
@@ -95,10 +95,10 @@ async def main():
         # 创建沙箱
         config = DockerSandboxConfig(image='python:3.11-slim', tools_config={'python_executor': {}})
         sandbox_id = await manager.create_sandbox(SandboxType.DOCKER, config)
-    
+
         # 执行代码
         result = await manager.execute_tool(
-            sandbox_id, 'python_executor', 
+            sandbox_id, 'python_executor',
             {'code': 'print("Hello from remote sandbox!")'}
         )
         print(result.model_dump())
@@ -182,7 +182,7 @@ async def advanced_example():
         tools_config={'python_executor': {}},
         memory_limit='1g'
     )
-    
+
     async with SandboxFactory.create_sandbox(SandboxType.DOCKER, config) as sandbox:
         # 数据处理示例
         code = '''
@@ -197,7 +197,7 @@ result = {
 }
 print(json.dumps(result, indent=2))
 '''
-        
+
         result = await sandbox.execute_tool('python_executor', {'code': code})
         print(result.output)
 ```
@@ -211,13 +211,13 @@ async def error_handling_example():
         tools_config={'python_executor': {}},
         timeout=5
     )
-    
+
     async with SandboxFactory.create_sandbox(SandboxType.DOCKER, config) as sandbox:
         # 处理语法错误
         result = await sandbox.execute_tool('python_executor', {
             'code': 'print("Missing quote'
         })
-        
+
         if result.error:
             print(f"错误: {result.error}")
         else:
